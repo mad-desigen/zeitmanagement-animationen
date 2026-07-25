@@ -1043,9 +1043,11 @@
     ];
     const TIMER_LABELS = { preparation: "Vorbereitung", animation: "in Arbeit" };
     let selectedSlot = "17:45";
-    let activeBroadcast = loadBoardPreferences().activeBroadcast;
-    let boardColors = loadBoardPreferences().colors;
-    let enabledBroadcasts = loadBoardPreferences().enabledBroadcasts;
+    const initialBoardPreferences = loadBoardPreferences();
+    let activeBroadcast = initialBoardPreferences.activeBroadcast;
+    let boardColors = initialBoardPreferences.colors;
+    let enabledBroadcasts = initialBoardPreferences.enabledBroadcasts;
+    let boardPreferencesUpdatedAt = initialBoardPreferences.updatedAt;
     let view = "board";
     let editingId = null;
     let analysisQuery = "";
@@ -1078,13 +1080,48 @@
             aktuell: BOARD_COLORS[stored.colors && stored.colors.aktuell] ? stored.colors.aktuell : "blue",
             mima: BOARD_COLORS[stored.colors && stored.colors.mima] ? stored.colors.mima : "teal",
           },
+          updatedAt: stored.updatedAt || new Date(0).toISOString(),
         };
       } catch {
-        return { activeBroadcast: "aktuell", enabledBroadcasts: Object.keys(BROADCASTS), colors: { aktuell: "blue", mima: "teal" } };
+        return { activeBroadcast: "aktuell", enabledBroadcasts: Object.keys(BROADCASTS), colors: { aktuell: "blue", mima: "teal" }, updatedAt: new Date(0).toISOString() };
       }
     }
-    function saveBoardPreferences() {
-      localStorage.setItem(BOARD_PREFERENCES_KEY, JSON.stringify({ activeBroadcast, enabledBroadcasts, colors: boardColors }));
+    function boardState() {
+      return { activeBroadcast, enabledBroadcasts, colors: boardColors, updatedAt: boardPreferencesUpdatedAt };
+    }
+    function normalizeBoardState(state) {
+      if (!state || !Array.isArray(state.enabledBroadcasts)) return null;
+      const safeEnabledBroadcasts = state.enabledBroadcasts.filter(key => BROADCASTS[key]);
+      if (!safeEnabledBroadcasts.length) return null;
+      const colors = state.colors || {};
+      return {
+        activeBroadcast: safeEnabledBroadcasts.includes(state.activeBroadcast) ? state.activeBroadcast : safeEnabledBroadcasts[0],
+        enabledBroadcasts: safeEnabledBroadcasts,
+        colors: {
+          aktuell: BOARD_COLORS[colors.aktuell] ? colors.aktuell : "blue",
+          mima: BOARD_COLORS[colors.mima] ? colors.mima : "teal",
+        },
+        updatedAt: state.updatedAt || new Date(0).toISOString(),
+      };
+    }
+    function applyBoardState(state) {
+      const normalized = normalizeBoardState(state);
+      if (!normalized || new Date(normalized.updatedAt).getTime() < new Date(boardPreferencesUpdatedAt).getTime()) return false;
+      activeBroadcast = normalized.activeBroadcast;
+      enabledBroadcasts = normalized.enabledBroadcasts;
+      boardColors = normalized.colors;
+      boardPreferencesUpdatedAt = normalized.updatedAt;
+      localStorage.setItem(BOARD_PREFERENCES_KEY, JSON.stringify(boardState()));
+      return true;
+    }
+    function serverBoardStateIsOlder(state) {
+      const normalized = normalizeBoardState(state);
+      if (!normalized) return true;
+      return new Date(normalized.updatedAt).getTime() < new Date(boardPreferencesUpdatedAt).getTime();
+    }
+    function saveBoardPreferences({ touch = true } = {}) {
+      if (touch) boardPreferencesUpdatedAt = new Date().toISOString();
+      localStorage.setItem(BOARD_PREFERENCES_KEY, JSON.stringify(boardState()));
     }
     function applyBoardColor() {
       const colorKey = boardColors[activeBroadcast] || "slate";
@@ -1302,8 +1339,11 @@
         tasks = merged;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
         if (mergedSignature !== remoteSignature) pendingServerSave = true;
+        const shouldSaveBoards = serverBoardStateIsOlder(remote.boards);
+        const boardChanged = applyBoardState(remote.boards);
+        if (shouldSaveBoards) pendingServerSave = true;
         syncStatus = { tone: "ok", text: "Server geladen: " + formatClock(new Date()) };
-        if (tasksSignature(tasks) !== before || !silent) render();
+        if (tasksSignature(tasks) !== before || boardChanged || !silent) render();
       } catch (error) {
         syncStatus = { tone: "error", text: error.message };
         if (!silent) alert(error.message);
@@ -1323,8 +1363,9 @@
       }
       isSyncing = true;
       try {
-        const remote = await apiRequest("save", { tasks });
+        const remote = await apiRequest("save", { tasks, boards: boardState() });
         tasks = archiveCompletedTasks(mergeTasks(tasks, remote.tasks || []), new Date());
+        applyBoardState(remote.boards);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
         syncStatus = { tone: "ok", text: "Server gespeichert: " + formatClock(new Date()) };
         if (!silent) alert("Server wurde gespeichert.");

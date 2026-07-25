@@ -54,22 +54,48 @@ function normalizeTasks(mixed $tasks): array {
     return array_values(array_filter($tasks, static fn($task) => is_array($task)));
 }
 
-function loadTasks(): array {
+function normalizeBoards(mixed $boards): ?array {
+    if (!is_array($boards)) return null;
+    return [
+        'enabledBroadcasts' => array_values(array_filter($boards['enabledBroadcasts'] ?? [], static fn($key) => is_string($key))),
+        'activeBroadcast' => is_string($boards['activeBroadcast'] ?? null) ? $boards['activeBroadcast'] : null,
+        'colors' => is_array($boards['colors'] ?? null) ? $boards['colors'] : [],
+        'updatedAt' => is_string($boards['updatedAt'] ?? null) ? $boards['updatedAt'] : gmdate('c'),
+    ];
+}
+
+function defaultState(): array {
+    return [
+        'tasks' => [],
+        'boards' => null,
+    ];
+}
+
+function loadState(): array {
     $stmt = db()->prepare('SELECT state_json FROM app_state WHERE state_key = ?');
     $stmt->execute([STATE_KEY]);
     $row = $stmt->fetch();
-    if (!$row) return [];
+    if (!$row) return defaultState();
     $data = json_decode((string)$row['state_json'], true);
-    if (is_array($data) && isset($data['tasks'])) return normalizeTasks($data['tasks']);
-    return normalizeTasks($data);
+    if (is_array($data) && isset($data['tasks'])) {
+        return [
+            'tasks' => normalizeTasks($data['tasks']),
+            'boards' => normalizeBoards($data['boards'] ?? null),
+        ];
+    }
+    return [
+        'tasks' => normalizeTasks($data),
+        'boards' => null,
+    ];
 }
 
-function saveTasks(array $tasks): void {
+function saveState(array $tasks, ?array $boards): void {
     $payload = json_encode([
         'app' => 'zeitmanagement',
-        'version' => 6,
+        'version' => 7,
         'updatedAt' => gmdate('c'),
         'tasks' => normalizeTasks($tasks),
+        'boards' => normalizeBoards($boards),
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
     if ($payload === false) {
@@ -89,12 +115,12 @@ try {
     $action = (string)($_GET['action'] ?? '');
 
     if ($action === 'load') {
-        respond(['ok' => true, 'tasks' => loadTasks()]);
+        respond(['ok' => true] + loadState());
     }
 
     if ($action === 'save') {
-        saveTasks(normalizeTasks($input['tasks'] ?? []));
-        respond(['ok' => true, 'tasks' => loadTasks()]);
+        saveState(normalizeTasks($input['tasks'] ?? []), normalizeBoards($input['boards'] ?? null));
+        respond(['ok' => true] + loadState());
     }
 
     respond(['ok' => false, 'error' => 'Unbekannte API-Aktion.'], 404);
