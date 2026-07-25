@@ -848,9 +848,10 @@
       margin-top: 18px;
     }
     .primary {
-      border-color: var(--pink);
-      background: linear-gradient(180deg, #ff5c85, #d83b65);
+      border-color: #34d37c;
+      background: linear-gradient(180deg, #45dc88, #1fa65c);
       color: white;
+      box-shadow: 0 12px 28px rgba(31, 166, 92, .24);
     }
     .hint {
       color: var(--muted);
@@ -922,16 +923,14 @@
             <option value="mima">MiMa</option>
           </select>
         </label>
-        <div class="grid-2">
-          <label>Typ
-            <select id="projectType">
-              <option>ANIM</option>
-              <option>INFO</option>
-              <option>KARTE</option>
-            </select>
-          </label>
-          <label>Kürzel <input id="abbreviation"></label>
-        </div>
+        <label>Typ
+          <select id="projectType">
+            <option>ANIM</option>
+            <option>INFO</option>
+            <option>KARTE</option>
+          </select>
+        </label>
+        <input type="hidden" id="abbreviation" value="PMY">
         <div class="grid-2">
           <label>Auftrag von <input id="requester"></label>
           <label>Quelle
@@ -957,7 +956,7 @@
       <p class="hint">Die Daten werden lokal zwischengespeichert und mit dem Server synchronisiert.</p>
       <div class="modal-actions">
         <button id="cancel">Abbrechen</button>
-        <button class="primary" id="create">Animation anlegen</button>
+        <button class="primary" id="create">Aufgabe anlegen</button>
       </div>
     </div>
   </div>
@@ -1155,7 +1154,7 @@
         id: task.id || uid(),
         title: task.title || "Animation",
         projectType: task.projectType || "ANIM",
-        abbreviation: task.abbreviation || "",
+        abbreviation: "PMY",
         source: task.source || "Formular",
         requester: task.requester || "",
         description: task.description || "",
@@ -1657,7 +1656,7 @@
       document.getElementById("title").value = task.title || "Animation";
       document.getElementById("broadcast").value = task.broadcast || activeBroadcast;
       document.getElementById("projectType").value = task.projectType || "ANIM";
-      document.getElementById("abbreviation").value = task.abbreviation || "";
+      document.getElementById("abbreviation").value = "PMY";
       document.getElementById("requester").value = task.requester || "";
       document.getElementById("source").value = task.source || "Formular";
       selectedSlot = task.sendSlot || "17:45";
@@ -1673,7 +1672,7 @@
         title,
         broadcast: document.getElementById("broadcast").value,
         projectType: document.getElementById("projectType").value,
-        abbreviation: document.getElementById("abbreviation").value.trim().toUpperCase(),
+        abbreviation: "PMY",
         source: document.getElementById("source").value,
         requester: document.getElementById("requester").value.trim(),
         description: document.getElementById("description").value.trim(),
@@ -1707,13 +1706,13 @@
       const [deadlineHour, deadlineMinute] = broadcast.defaultDeadline.split(":").map(Number);
       deadline.setHours(deadlineHour, deadlineMinute, 0, 0);
       document.getElementById("dialogTitle").textContent = editingId ? "Aufgabe bearbeiten" : "Aufgabe hinzufügen";
-      document.getElementById("create").textContent = editingId ? "Änderungen speichern" : "Animation anlegen";
+      document.getElementById("create").textContent = editingId ? "Änderungen speichern" : "Aufgabe anlegen";
       const task = editingId ? tasks.find(item => item.id === editingId) : null;
       setForm(task || {
         title: "Animation",
         broadcast: broadcastKey,
         projectType: "ANIM",
-        abbreviation: "",
+        abbreviation: "PMY",
         source: "Formular",
         requester: "",
         description: "",
@@ -1904,7 +1903,7 @@
               title,
               broadcast: broadcastKey,
               projectType: pickField(row, headers, ["Typ", "Type"]) || "ANIM",
-              abbreviation: pickField(row, headers, ["Kürzel", "Kuerzel", "Code"]).toUpperCase(),
+              abbreviation: "PMY",
               source: "Teams",
               requester: pickField(row, headers, ["Auftrag von", "Auftraggeber", "Assigned to", "Zugewiesen an"]),
               description: pickField(row, headers, ["Notiz", "Beschreibung", "Description", "Notes"]),

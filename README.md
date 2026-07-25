@@ -29,7 +29,7 @@ im Terminal, normalerweise `http://localhost:3000/`.
 - Bestehende Aufgaben können über `Bearbeiten` geändert werden.
 - CSV-Dateien aus Planner/Excel können importiert werden.
 - Backups können als Datei gespeichert und wieder geladen werden.
-- Projekttyp `ANIM`, `INFO` oder `KARTE` und Kürzel werden für den Ordnernamen erfasst.
+- Projekttyp `ANIM`, `INFO` oder `KARTE` wird für den Ordnernamen erfasst; das Kürzel ist fest `PMY`.
 - Die festen Sendefenster `17:45`, `19:30` und `21:45` sind als Schnellwahl hinterlegt.
 - Die eigentliche Produktionsdeadline kann separat gesetzt werden.
 - Das Board nutzt die Spalten `in Planung`, `in Arbeit`, `Abnahme` und `Fertig`.

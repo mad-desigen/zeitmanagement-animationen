@@ -110,8 +110,11 @@ test("uses one shared board and keeps board styling in settings", async () => {
   assert.match(standaloneApp, /function taskIsInActiveBroadcast\(task\) \{\s*return true;\s*\}/);
   assert.match(standaloneApp, /<h2>Timeline<\/h2>/);
   assert.match(standaloneApp, /data-board-color/);
+  assert.match(standaloneApp, /<input type="hidden" id="abbreviation" value="PMY">/);
+  assert.match(standaloneApp, /Aufgabe anlegen/);
   assert.match(standaloneApp, /BOARD_COLORS/);
   assert.match(standaloneApp, /BOARD_PREFERENCES_KEY/);
+  assert.doesNotMatch(standaloneApp, /Animation anlegen/);
   assert.doesNotMatch(standaloneApp, /id="broadcastSwitch"/);
   assert.doesNotMatch(standaloneApp, /id="deleteBoard"/);
   assert.doesNotMatch(standaloneApp, /function deleteActiveBoard\(\)/);
