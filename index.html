@@ -348,6 +348,8 @@
       border: 1px solid rgba(255,255,255,.1);
       border-radius: var(--radius);
       background: rgba(255,255,255,.045);
+      padding: 0;
+      cursor: zoom-in;
     }
     .cover-image img {
       display: block;
@@ -584,7 +586,10 @@
       display: grid;
       gap: 7px;
     }
-    .attachment-list a, .upload-item {
+    .attachment-list {
+      margin-top: 2px;
+    }
+    .file-card, .upload-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -598,9 +603,40 @@
       font-size: 12px;
       font-weight: 800;
     }
-    .attachment-list small, .upload-item small {
+    .file-card small, .upload-item small {
       color: var(--muted);
       font-weight: 800;
+    }
+    .file-info {
+      min-width: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .file-info span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .file-actions {
+      display: inline-flex;
+      flex: 0 0 auto;
+      gap: 6px;
+    }
+    .file-actions button, .file-actions a {
+      min-width: 34px;
+      min-height: 32px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.045);
+      color: var(--text);
+      padding: 5px;
+      text-decoration: none;
+    }
+    .file-actions .danger {
+      color: #f2a4b8;
     }
     .timeline-panel, .analysis-panel {
       overflow-x: auto;
@@ -983,6 +1019,50 @@
       font-size: 12px;
       font-weight: 900;
     }
+    .gallery-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 35;
+      display: none;
+      place-items: center;
+      background: rgba(0,0,0,.86);
+      padding: 20px;
+      backdrop-filter: blur(12px);
+    }
+    .gallery-modal.open { display: grid; }
+    .gallery-dialog {
+      width: min(1100px, 100%);
+      display: grid;
+      gap: 12px;
+    }
+    .gallery-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .gallery-head strong {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .gallery-frame {
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--radius);
+      background: #0d0f12;
+      min-height: 340px;
+      max-height: 78vh;
+      overflow: hidden;
+    }
+    .gallery-frame img {
+      max-width: 100%;
+      max-height: 78vh;
+      object-fit: contain;
+      display: block;
+    }
     @media (max-width: 900px) {
       .header-row { align-items: stretch; flex-direction: column; }
       .metrics, .learning, .analysis-summary, .grid-2, .settings-grid { grid-template-columns: 1fr; }
@@ -1112,7 +1192,19 @@
   <input id="attachmentInput" type="file" multiple hidden>
   <input id="coverInput" type="file" accept="image/*" hidden>
 
-	  <script>
+  <div class="gallery-modal" id="galleryModal" role="dialog" aria-modal="true" aria-label="Bild ansehen">
+    <div class="gallery-dialog">
+      <div class="gallery-head">
+        <strong id="galleryTitle">Bild</strong>
+        <button id="closeGallery" aria-label="Schließen">x</button>
+      </div>
+      <div class="gallery-frame">
+        <img id="galleryImage" alt="">
+      </div>
+    </div>
+  </div>
+
+		  <script>
     const STORAGE_KEY = "zeitmanagement-tool-v3";
     const BOARD_PREFERENCES_KEY = "zeitmanagement-board-preferences-v1";
     const API_URL = ["localhost", "127.0.0.1", "::1"].includes(location.hostname)
@@ -1310,6 +1402,25 @@
 	      if (size >= 1024) return Math.round(size / 1024) + " KB";
 	      return size + " B";
 	    }
+	    function isImageFile(file) {
+	      return Boolean(file && String(file.type || "").startsWith("image/"));
+	    }
+	    function renderFileActions(task, file, kind = "attachment") {
+	      const viewButton = isImageFile(file)
+	        ? `<button type="button" data-action="view-file" data-id="${task.id}" data-file-id="${file.id}" data-kind="${kind}" title="Bild ansehen" aria-label="Bild ansehen">${icon("image")}</button>`
+	        : "";
+	      return `<div class="file-actions">
+	        ${viewButton}
+	        <a href="${escapeHtml(file.url)}" download="${escapeHtml(file.name)}" title="Download" aria-label="Download">${icon("download")}</a>
+	        <button type="button" class="danger" data-action="delete-file" data-id="${task.id}" data-file-id="${file.id}" data-kind="${kind}" title="Datei löschen" aria-label="Datei löschen">${icon("trash")}</button>
+	      </div>`;
+	    }
+	    function renderFileCard(task, file, kind = "attachment") {
+	      return `<div class="file-card">
+	        <div class="file-info">${icon(isImageFile(file) ? "image" : "paperclip")}<span>${escapeHtml(file.name)}</span><small>${formatBytes(file.size)}</small></div>
+	        ${renderFileActions(task, file, kind)}
+	      </div>`;
+	    }
 	    function downloadJson(data, filename) {
 	      downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }), filename);
 	    }
@@ -1386,6 +1497,7 @@
 	        trash: '<path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 15H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path>',
 	        paperclip: '<path d="m21.4 11.6-8.8 8.8a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.8-8.8"></path>',
 	        image: '<rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="8.5" cy="10.5" r="1.5"></circle><path d="m21 15-5-5L5 19"></path>',
+	        download: '<path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path>',
 	      };
       return `<svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true">${paths[name] || ""}</svg>`;
     }
@@ -1444,6 +1556,11 @@
 	        throw new Error(data && data.error ? data.error : "Datei konnte nicht hochgeladen werden.");
 	      }
 	      return normalizeFileMeta(data.file);
+	    }
+	    async function deleteServerFile(fileId) {
+	      if (!fileId) return;
+	      if (!API_URL) throw new Error("Dateien können nur in der Server-Version gelöscht werden.");
+	      await apiRequest("deleteFile", { id: fileId });
 	    }
     async function loadFromServer({ silent = false } = {}) {
       if (isSyncing) return;
@@ -1660,7 +1777,7 @@
 	          <div class="card-title-row">
 	            <h3>${escapeHtml(task.title)}</h3>
 	          </div>
-	          ${task.coverImage ? `<div class="cover-image"><img src="${escapeHtml(task.coverImage.url)}" alt=""></div>` : ""}
+	          ${task.coverImage ? `<button class="cover-image" data-action="view-file" data-id="${task.id}" data-file-id="${task.coverImage.id}" data-kind="cover" title="Titelbild ansehen" aria-label="Titelbild ansehen"><img src="${escapeHtml(task.coverImage.url)}" alt=""></button>` : ""}
 	          <div class="card-focus">
             <div class="time-left">
               <span>${riskLabel(state)}</span>
@@ -1715,9 +1832,10 @@
 	              <button class="folder card-icon-button" data-action="folder" data-id="${task.id}" title="Projektordner herunterladen" aria-label="Projektordner herunterladen">${icon("folder")}</button>
 	              <button class="delete-action card-icon-button" data-action="delete" data-id="${task.id}" title="Aufgabe löschen" aria-label="Aufgabe löschen">${icon("trash")}</button>
 	            </div>
-	            ${(task.attachments || []).length ? `<div class="attachment-list">${task.attachments.map(file =>
-	              `<a href="${escapeHtml(file.url)}" target="_blank" rel="noopener"><span>${icon("paperclip")}${escapeHtml(file.name)}</span><small>${formatBytes(file.size)}</small></a>`
-	            ).join("")}</div>` : ""}
+	            ${(task.coverImage || (task.attachments || []).length) ? `<div class="attachment-list">
+	              ${task.coverImage ? renderFileCard(task, task.coverImage, "cover") : ""}
+	              ${(task.attachments || []).map(file => renderFileCard(task, file, "attachment")).join("")}
+	            </div>` : ""}
 	            ${task.description ? `<p class="note">${escapeHtml(task.description)}</p>` : ""}
           </div>
         </details>
@@ -1861,7 +1979,10 @@
 	      box.innerHTML = stagedAttachments.length ? stagedAttachments.map((file, index) => `
 	        <div class="file-row">
 	          <span>${icon("paperclip")}${escapeHtml(file.name)} <small>${formatBytes(file.size)}</small></span>
-	          <button type="button" data-remove-staged-file="${index}" aria-label="Datei entfernen">x</button>
+	          <div class="file-actions">
+	            ${file.id ? `<a href="${escapeHtml(file.url)}" download="${escapeHtml(file.name)}" title="Download" aria-label="Download">${icon("download")}</a>` : ""}
+	            <button type="button" class="danger" data-remove-staged-file="${index}" aria-label="Datei löschen">${icon("trash")}</button>
+	          </div>
 	        </div>
 	      `).join("") : '<div class="file-row"><span>Keine Dateien</span></div>';
 	    }
@@ -2077,17 +2198,52 @@
       save();
       render();
     }
-    function deleteTask(id) {
-      const task = tasks.find(item => item.id === id);
-      if (!task) return;
+	    function deleteTask(id) {
+	      const task = tasks.find(item => item.id === id);
+	      if (!task) return;
       if (!confirm(`"${task.title}" wirklich löschen?`)) return;
       const deletedAt = new Date().toISOString();
       tasks = tasks.map(item => item.id === id ? { ...item, activeTimer: null, deletedAt, updatedAt: deletedAt } : item);
       openDetailIds.delete(id);
-      save();
-      render();
-    }
-    function startTimer(id, kind) {
+	      save();
+	      render();
+	    }
+	    function findTaskFile(taskId, fileId, kind = "attachment") {
+	      const task = tasks.find(item => item.id === taskId);
+	      if (!task) return null;
+	      if (kind === "cover") return task.coverImage && task.coverImage.id === fileId ? task.coverImage : null;
+	      return (task.attachments || []).find(file => file.id === fileId) || null;
+	    }
+	    function openGallery(taskId, fileId, kind = "attachment") {
+	      const file = findTaskFile(taskId, fileId, kind);
+	      if (!file || !isImageFile(file)) return;
+	      document.getElementById("galleryTitle").textContent = file.name;
+	      document.getElementById("galleryImage").src = file.url;
+	      document.getElementById("galleryModal").classList.add("open");
+	    }
+	    function closeGallery() {
+	      document.getElementById("galleryModal").classList.remove("open");
+	      document.getElementById("galleryImage").src = "";
+	    }
+	    async function deleteTaskFile(taskId, fileId, kind = "attachment") {
+	      const file = findTaskFile(taskId, fileId, kind);
+	      if (!file) return;
+	      if (!confirm(`"${file.name}" wirklich löschen? Die Datei wird vom Server entfernt.`)) return;
+	      try {
+	        await deleteServerFile(file.id);
+	        tasks = tasks.map(task => {
+	          if (task.id !== taskId) return task;
+	          if (kind === "cover") return touch({ ...task, coverImage: null });
+	          return touch({ ...task, attachments: (task.attachments || []).filter(item => item.id !== fileId) });
+	        });
+	        if (editingId === taskId) resetStagedMedia(tasks.find(item => item.id === taskId));
+	        save();
+	        render();
+	      } catch (error) {
+	        alert(error.message);
+	      }
+	    }
+	    function startTimer(id, kind) {
       tasks = tasks.map(task => {
         if (task.id !== id) return task;
         if (task.activeTimer && task.activeTimer.kind === kind) {
@@ -2111,6 +2267,7 @@
 	      return view === "settings"
 	        || document.getElementById("modal").classList.contains("open")
 	        || document.getElementById("cropModal").classList.contains("open")
+	        || document.getElementById("galleryModal").classList.contains("open")
 	        || isTyping
 	        || isInspectingCard;
 	    }
@@ -2293,7 +2450,11 @@
 	    document.getElementById("notify").addEventListener("click", enableNotifications);
 	    document.getElementById("pickFiles").addEventListener("click", () => document.getElementById("attachmentInput").click());
 	    document.getElementById("pickCover").addEventListener("click", () => document.getElementById("coverInput").click());
-	    document.getElementById("removeCover").addEventListener("click", () => {
+	    document.getElementById("removeCover").addEventListener("click", async () => {
+	      if (stagedCoverImage && stagedCoverImage.id && editingId) {
+	        await deleteTaskFile(editingId, stagedCoverImage.id, "cover");
+	        return;
+	      }
 	      stagedCoverImage = null;
 	      renderCoverPreview();
 	    });
@@ -2318,6 +2479,10 @@
 	    document.getElementById("cancelCrop").addEventListener("click", closeCropper);
 	    document.getElementById("cancelCropBottom").addEventListener("click", closeCropper);
 	    document.getElementById("applyCrop").addEventListener("click", applyCrop);
+	    document.getElementById("closeGallery").addEventListener("click", closeGallery);
+	    document.getElementById("galleryModal").addEventListener("click", event => {
+	      if (event.target.id === "galleryModal") closeGallery();
+	    });
 	    document.getElementById("backupFile").addEventListener("change", event => {
       const file = event.target.files && event.target.files[0];
       if (file) loadBackupFile(file);
@@ -2341,10 +2506,16 @@
       view = button.dataset.view;
       render();
     });
-	    document.getElementById("modal").addEventListener("click", event => {
+	    document.getElementById("modal").addEventListener("click", async event => {
 	      const removeButton = event.target.closest("button[data-remove-staged-file]");
 	      if (removeButton) {
-	        stagedAttachments.splice(Number(removeButton.dataset.removeStagedFile), 1);
+	        const index = Number(removeButton.dataset.removeStagedFile);
+	        const file = stagedAttachments[index];
+	        if (file && file.id && editingId) {
+	          await deleteTaskFile(editingId, file.id, "attachment");
+	          return;
+	        }
+	        stagedAttachments.splice(index, 1);
 	        renderStagedFiles();
 	        return;
 	      }
@@ -2369,6 +2540,8 @@
         if (button.dataset.action === "stop") stopTimer(button.dataset.id);
 	        if (button.dataset.action === "folder") downloadFolder(button.dataset.id);
 	        if (button.dataset.action === "edit") openDialog(button.dataset.id);
+	        if (button.dataset.action === "view-file") openGallery(button.dataset.id, button.dataset.fileId, button.dataset.kind);
+	        if (button.dataset.action === "delete-file") deleteTaskFile(button.dataset.id, button.dataset.fileId, button.dataset.kind);
 	        if (button.dataset.action === "attach") {
 	          openDialog(button.dataset.id);
 	          setTimeout(() => document.getElementById("attachmentInput").click(), 0);

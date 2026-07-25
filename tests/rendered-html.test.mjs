@@ -135,10 +135,18 @@ test("supports server-backed file uploads and cropped title images", async () =>
   assert.match(standaloneApp, /action=upload/);
   assert.match(standaloneApp, /data-action="attach"/);
   assert.match(standaloneApp, /isInspectingCard = Boolean\(document\.querySelector\("\.card:hover"\)\)/);
+  assert.match(standaloneApp, /id="galleryModal"/);
+  assert.match(standaloneApp, /data-action="view-file"/);
+  assert.match(standaloneApp, /data-action="delete-file"/);
+  assert.match(standaloneApp, /download="\$\{escapeHtml\(file\.name\)\}"/);
+  assert.match(standaloneApp, /async function deleteTaskFile/);
   assert.match(api, /CREATE TABLE IF NOT EXISTS uploaded_files/);
   assert.match(api, /function handleUpload\(\): never/);
   assert.match(api, /function streamFile\(\): never/);
+  assert.match(api, /function deleteUploadedFile\(string \$id\): void/);
   assert.match(api, /move_uploaded_file/);
+  assert.match(api, /unlink\(\$path\)/);
   assert.match(api, /\$action === 'upload'/);
   assert.match(api, /\$action === 'file'/);
+  assert.match(api, /\$action === 'deleteFile'/);
 });

@@ -142,6 +142,27 @@ function streamFile(): never {
     exit;
 }
 
+function deleteUploadedFile(string $id): void {
+    if (!preg_match('/^[a-f0-9]{32}$/', $id)) {
+        respond(['ok' => false, 'error' => 'Datei nicht gefunden.'], 404);
+    }
+
+    $stmt = db()->prepare('SELECT storage_name FROM uploaded_files WHERE id = ?');
+    $stmt->execute([$id]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        respond(['ok' => true, 'deleted' => false]);
+    }
+
+    $path = uploadDir() . '/' . (string)$row['storage_name'];
+    if (is_file($path) && !unlink($path)) {
+        respond(['ok' => false, 'error' => 'Datei konnte nicht vom Server gelöscht werden.'], 500);
+    }
+
+    $delete = db()->prepare('DELETE FROM uploaded_files WHERE id = ?');
+    $delete->execute([$id]);
+}
+
 function normalizeTasks(mixed $tasks): array {
     if (!is_array($tasks)) return [];
     return array_values(array_filter($tasks, static fn($task) => is_array($task)));
@@ -223,6 +244,12 @@ try {
     if ($action === 'save') {
         saveState(normalizeTasks($input['tasks'] ?? []), normalizeBoards($input['boards'] ?? null));
         respond(['ok' => true] + loadState());
+    }
+
+    if ($action === 'deleteFile') {
+        $id = is_string($input['id'] ?? null) ? $input['id'] : '';
+        deleteUploadedFile($id);
+        respond(['ok' => true, 'deleted' => true]);
     }
 
     respond(['ok' => false, 'error' => 'Unbekannte API-Aktion.'], 404);
