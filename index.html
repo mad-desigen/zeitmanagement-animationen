@@ -80,11 +80,16 @@
     }
     .header-row {
       display: flex;
-      align-items: flex-end;
+      align-items: center;
       justify-content: space-between;
       gap: 18px;
       max-width: 1600px;
       margin: 0 auto;
+    }
+    .brand {
+      display: flex;
+      min-width: 190px;
+      align-items: center;
     }
     h1 {
       margin: 0;
@@ -96,9 +101,8 @@
     }
     .brand-logo {
       display: block;
-      width: min(720px, 58vw);
+      width: clamp(220px, 26vw, 420px);
       height: auto;
-      max-height: 164px;
     }
 	    .color-palette {
 	      display: flex;
@@ -193,8 +197,13 @@
       align-items: center;
       justify-content: flex-end;
       gap: 12px;
-      max-width: 1600px;
-      margin: 20px auto 0;
+      margin: 0;
+    }
+    .header-tools {
+      display: grid;
+      gap: 12px;
+      justify-items: end;
+      min-width: 0;
     }
     .add, .column-add {
       display: inline-flex;
@@ -264,7 +273,7 @@
     }
     .switch {
       display: inline-grid;
-      grid-template-columns: repeat(5, minmax(105px, 1fr));
+      grid-template-columns: repeat(4, minmax(105px, 1fr)) 48px;
       overflow: hidden;
       border: 1px solid var(--line-soft);
       border-radius: var(--radius);
@@ -287,6 +296,18 @@
       background: var(--yellow);
       color: #111;
       box-shadow: inset 0 -2px 0 rgba(0,0,0,.18);
+    }
+    .switch button.icon-only {
+      min-width: 48px;
+      padding-inline: 12px;
+    }
+    .switch button.icon-only .nav-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
     }
     main {
       max-width: 1600px;
@@ -1454,11 +1475,14 @@
         letter-spacing: .035em;
       }
       .brand-logo {
-        width: min(320px, 76vw);
-        max-height: 78px;
+        width: min(230px, 66vw);
       }
       .header-row {
+        align-items: flex-start;
         gap: 12px;
+      }
+      .header-tools {
+        display: contents;
       }
       .metrics {
         display: none;
@@ -1882,42 +1906,44 @@
 <body>
   <header>
     <div class="header-row">
-      <div>
+      <div class="brand">
         <img class="brand-logo" src="Logo.svg" alt="Zeitmanagement">
       </div>
-      <div class="metrics" id="metrics"></div>
-    </div>
-    <div class="actions">
-      <div class="switch" aria-label="Ansicht wechseln">
-        <button class="active" data-view="board" title="Kanban" aria-label="Kanban">
-          <svg class="svg-icon nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="7" height="16" rx="2"></rect><rect x="14" y="4" width="7" height="16" rx="2"></rect></svg>
-          <span class="nav-label">Kanban</span>
-        </button>
-        <button data-view="timeline" title="Timeline" aria-label="Timeline">
-          <svg class="svg-icon nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h5"></path><path d="M4 12h12"></path><path d="M4 18h8"></path><path d="M17 6h3"></path><path d="M20 6v12"></path></svg>
-          <span class="nav-label">Timeline</span>
-        </button>
-        <button data-view="analysis" title="Analyse" aria-label="Analyse">
-          <svg class="svg-icon nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"></path><path d="M4 19h16"></path><rect x="7" y="11" width="3" height="5" rx="1"></rect><rect x="12" y="7" width="3" height="9" rx="1"></rect><rect x="17" y="9" width="3" height="7" rx="1"></rect></svg>
-          <span class="nav-label">Analyse</span>
-        </button>
-        <button data-view="archive" title="Archiv" aria-label="Archiv">
-          <svg class="svg-icon nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="4" rx="1"></rect><path d="M6 9v10h12V9"></path><path d="M10 13h4"></path></svg>
-          <span class="nav-label">Archiv</span>
-        </button>
-        <button data-view="settings" title="Einstellungen" aria-label="Einstellungen">
-          <svg class="svg-icon nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3"></path><path d="M12 18v3"></path><path d="M3 12h3"></path><path d="M18 12h3"></path><circle cx="12" cy="12" r="3"></circle><path d="m5.6 5.6 2.1 2.1"></path><path d="m16.3 16.3 2.1 2.1"></path><path d="m18.4 5.6-2.1 2.1"></path><path d="m7.7 16.3-2.1 2.1"></path></svg>
-          <span class="nav-label">Einstellungen</span>
-        </button>
+      <div class="header-tools">
+        <div class="metrics" id="metrics"></div>
+        <div class="actions">
+          <div class="switch" aria-label="Ansicht wechseln">
+            <button class="active" data-view="board" title="Kanban" aria-label="Kanban">
+              <svg class="svg-icon nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="7" height="16" rx="2"></rect><rect x="14" y="4" width="7" height="16" rx="2"></rect></svg>
+              <span class="nav-label">Kanban</span>
+            </button>
+            <button data-view="timeline" title="Timeline" aria-label="Timeline">
+              <svg class="svg-icon nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h5"></path><path d="M4 12h12"></path><path d="M4 18h8"></path><path d="M17 6h3"></path><path d="M20 6v12"></path></svg>
+              <span class="nav-label">Timeline</span>
+            </button>
+            <button data-view="analysis" title="Analyse" aria-label="Analyse">
+              <svg class="svg-icon nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"></path><path d="M4 19h16"></path><rect x="7" y="11" width="3" height="5" rx="1"></rect><rect x="12" y="7" width="3" height="9" rx="1"></rect><rect x="17" y="9" width="3" height="7" rx="1"></rect></svg>
+              <span class="nav-label">Analyse</span>
+            </button>
+            <button data-view="archive" title="Archiv" aria-label="Archiv">
+              <svg class="svg-icon nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="4" rx="1"></rect><path d="M6 9v10h12V9"></path><path d="M10 13h4"></path></svg>
+              <span class="nav-label">Archiv</span>
+            </button>
+            <button class="icon-only" data-view="settings" title="Einstellungen" aria-label="Einstellungen">
+              <svg class="svg-icon nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3"></path><path d="M12 18v3"></path><path d="M3 12h3"></path><path d="M18 12h3"></path><circle cx="12" cy="12" r="3"></circle><path d="m5.6 5.6 2.1 2.1"></path><path d="m16.3 16.3 2.1 2.1"></path><path d="m18.4 5.6-2.1 2.1"></path><path d="m7.7 16.3-2.1 2.1"></path></svg>
+              <span class="nav-label">Einstellungen</span>
+            </button>
+          </div>
+          <button class="icon-button" id="notify" title="Benachrichtigungen aktivieren" aria-label="Benachrichtigungen aktivieren">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+              <path d="M10 21h4"></path>
+            </svg>
+          </button>
+          <input id="csvFile" type="file" accept=".csv,.txt" hidden>
+          <input id="backupFile" type="file" accept=".json,application/json" hidden>
+        </div>
       </div>
-      <button class="icon-button" id="notify" title="Benachrichtigungen aktivieren" aria-label="Benachrichtigungen aktivieren">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
-          <path d="M10 21h4"></path>
-        </svg>
-      </button>
-      <input id="csvFile" type="file" accept=".csv,.txt" hidden>
-      <input id="backupFile" type="file" accept=".json,application/json" hidden>
     </div>
   </header>
 
