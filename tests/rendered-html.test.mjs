@@ -29,14 +29,16 @@ test("server-renders the production timeline app shell", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>Zeitmanagement für Animationen<\/title>/i);
-  assert.match(html, /Zeitmanagement für Animationen/);
+  assert.match(html, /<title>Zeitmanagement<\/title>/i);
+  assert.match(html, /Zeitmanagement/);
+  assert.doesNotMatch(html, /Zeitmanagement für Animationen/);
   assert.doesNotMatch(html, /Zeitmanagement fuer Animationen/);
   assert.doesNotMatch(html, /Produktions-Timeline/);
   assert.doesNotMatch(html, /MDR Aktuell/);
   assert.match(html, /Aufgabe hinzufügen/);
   assert.match(html, /Kanban/);
   assert.match(html, /Timeline/);
+  assert.match(html, /Analyse/);
   assert.match(html, /in Planung/);
   assert.match(html, /in Arbeit/);
   assert.match(html, /Abnahme/);
@@ -64,6 +66,11 @@ test("keeps durable local storage and removes starter references", async () => {
   assert.match(page, /isComposerOpen/);
   assert.match(page, /SEND_SLOTS = \["17:45", "19:30", "21:45"\]/);
   assert.match(page, /ProductionOverview/);
+  assert.match(page, /AnalysisView/);
+  assert.match(page, /archiveCompletedTasks/);
+  assert.match(page, /lastArchiveDateRef/);
+  assert.match(page, /archivedAt/);
+  assert.match(page, /Archiv und Auswertung/);
   assert.match(page, /Projektordner herunterladen/);
   assert.match(page, /projectType/);
   assert.match(page, /abbreviation/);

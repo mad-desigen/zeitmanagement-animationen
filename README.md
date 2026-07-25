@@ -1,8 +1,7 @@
-# Zeitmanagement für Animationen
+# Zeitmanagement
 
-Zeitmanagement-Tool im Darkmode für Produktionen mit Animationsdeadline,
-Sendezeit, Kanban-Board, Timeline, Vorbereitungstimer,
-Arbeits-Timer und Tagesauswertung.
+Zeitmanagement-Tool im Darkmode mit Deadline, Sendezeit, Kanban-Board,
+Timeline, Vorbereitungstimer, Arbeits-Timer, Archiv und Analyse.
 
 ## Start
 
@@ -23,6 +22,8 @@ im Terminal, normalerweise `http://localhost:3000/`.
 - Die festen Sendefenster `17:45`, `19:30` und `21:45` sind als Schnellwahl hinterlegt.
 - Die eigentliche Produktionsdeadline kann separat gesetzt werden.
 - Das Board nutzt die Spalten `in Planung`, `in Arbeit`, `Abnahme` und `Fertig`.
+- Fertige Aufgaben bleiben am aktuellen Tag sichtbar und werden beim Tageswechsel archiviert.
+- Die Analyse-Ansicht zeigt abgeschlossene und archivierte Aufgaben mit erfassten Zeiten.
 - Timer sind bewusst auf `Vorbereitung` und `in Arbeit` reduziert.
 - Wird eine Aufgabe in `Abnahme` verschoben, stoppt eine laufende Zeiterfassung.
 - Wird danach wieder ein Timer gestartet, springt die Aufgabe zur passenden Arbeitsspalte.

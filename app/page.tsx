@@ -5,7 +5,7 @@ import type { DragEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type TimerKind = "preparation" | "animation";
-type ViewMode = "board" | "timeline";
+type ViewMode = "board" | "timeline" | "analysis";
 type WorkStatus =
   | "planning"
   | "animation"
@@ -35,6 +35,7 @@ type Task = {
   sessions: TimerSession[];
   createdAt: string;
   completedAt: string | null;
+  archivedAt: string | null;
 };
 
 type Draft = {
@@ -86,6 +87,10 @@ function toLocalDate(date: Date) {
   return new Date(date.getTime() - offset).toISOString().slice(0, 10);
 }
 
+function localDateFromIso(value: string) {
+  return toLocalDate(new Date(value));
+}
+
 function combineDeadline(date: string, time: string) {
   return `${date}T${time || "17:15"}`;
 }
@@ -111,6 +116,16 @@ function formatDuration(seconds: number) {
 
 function formatClock(value: string) {
   return new Intl.DateTimeFormat("de-DE", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
@@ -208,10 +223,30 @@ function normalizeTasks(raw: string | null): Task[] {
       sessions: task.sessions ?? [],
       createdAt: task.createdAt ?? new Date().toISOString(),
       completedAt: task.completedAt ?? null,
+      archivedAt: task.archivedAt ?? null,
     }));
   } catch {
     return [];
   }
+}
+
+function archiveCompletedTasks(tasks: Task[], now = new Date()) {
+  const today = toLocalDate(now);
+  let changed = false;
+  const archived = tasks.map((task) => {
+    if (
+      task.archivedAt ||
+      !task.completedAt ||
+      localDateFromIso(task.completedAt) >= today
+    ) {
+      return task;
+    }
+
+    changed = true;
+    return { ...task, archivedAt: now.toISOString() };
+  });
+
+  return changed ? archived : tasks;
 }
 
 export default function Home() {
@@ -226,14 +261,17 @@ export default function Home() {
     return Notification.permission;
   });
   const warnedRef = useRef<Set<string>>(new Set());
+  const lastArchiveDateRef = useRef(toLocalDate(new Date()));
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       setTasks(
-        normalizeTasks(
+        archiveCompletedTasks(
+          normalizeTasks(
           window.localStorage.getItem(STORAGE_KEY) ??
             window.localStorage.getItem("zeitmanagement-tool-v2") ??
             window.localStorage.getItem("zeitmanagement-tool-v1"),
+          ),
         ),
       );
       setHasLoadedLocalTasks(true);
@@ -248,7 +286,16 @@ export default function Home() {
   }, [hasLoadedLocalTasks, tasks]);
 
   useEffect(() => {
-    const interval = window.setInterval(() => setNow(new Date()), 1000);
+    const interval = window.setInterval(() => {
+      const nextNow = new Date();
+      const currentDate = toLocalDate(nextNow);
+      setNow(nextNow);
+
+      if (currentDate !== lastArchiveDateRef.current) {
+        lastArchiveDateRef.current = currentDate;
+        setTasks((current) => archiveCompletedTasks(current, nextNow));
+      }
+    }, 1000);
     return () => window.clearInterval(interval);
   }, []);
 
@@ -273,9 +320,10 @@ export default function Home() {
   }, [noticePermission, now, tasks]);
 
   const activeTasks = tasks
-    .filter((task) => !task.completedAt && task.workStatus !== "delivered")
+    .filter((task) => !task.archivedAt && !task.completedAt && task.workStatus !== "delivered")
     .sort((a, b) => new Date(a.productionDeadline).getTime() - new Date(b.productionDeadline).getTime());
-  const completedTasks = tasks.filter((task) => task.completedAt || task.workStatus === "delivered");
+  const completedTasks = tasks.filter((task) => !task.archivedAt && (task.completedAt || task.workStatus === "delivered"));
+  const archivedTasks = tasks.filter((task) => task.archivedAt);
 
   const summary = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -302,6 +350,7 @@ export default function Home() {
       sessions: [],
       createdAt: new Date().toISOString(),
       completedAt: null,
+      archivedAt: null,
     };
     setTasks((current) => [task, ...current]);
     setDraft(initialDraft());
@@ -375,7 +424,7 @@ export default function Home() {
           <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
             <div>
               <h1 className="max-w-4xl text-3xl font-semibold uppercase tracking-[0.14em] text-[#f4f4f2] md:text-5xl">
-                Zeitmanagement für Animationen
+                Zeitmanagement
               </h1>
             </div>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -398,6 +447,9 @@ export default function Home() {
               <button className={view === "timeline" ? "active" : ""} onClick={() => setView("timeline")}>
                 Timeline
               </button>
+              <button className={view === "analysis" ? "active" : ""} onClick={() => setView("analysis")}>
+                Analyse
+              </button>
             </div>
             <button className="control-button" onClick={enableNotifications}>
               Benachrichtigungen {noticePermission === "granted" ? "aktiv" : "aktivieren"}
@@ -415,9 +467,11 @@ export default function Home() {
           </div>
           {view === "timeline" ? (
             <ProductionOverview tasks={activeTasks} now={now} />
+          ) : view === "analysis" ? (
+            <AnalysisView activeTasks={activeTasks} completedTasks={completedTasks} archivedTasks={archivedTasks} now={now} />
           ) : (
             <KanbanBoard
-              tasks={tasks}
+              tasks={tasks.filter((task) => !task.archivedAt)}
               now={now}
               onMove={moveTask}
               onStart={startTimer}
@@ -705,6 +759,89 @@ function ProductionOverview({ tasks, now }: { tasks: Task[]; now: Date }) {
           })
         )}
       </div>
+    </div>
+  );
+}
+
+function AnalysisView({
+  activeTasks,
+  completedTasks,
+  archivedTasks,
+  now,
+}: {
+  activeTasks: Task[];
+  completedTasks: Task[];
+  archivedTasks: Task[];
+  now: Date;
+}) {
+  const finishedTasks = [...completedTasks, ...archivedTasks].sort(
+    (a, b) => new Date(b.completedAt ?? b.createdAt).getTime() - new Date(a.completedAt ?? a.createdAt).getTime(),
+  );
+  const today = toLocalDate(now);
+  const finishedToday = finishedTasks.filter((task) => task.completedAt && localDateFromIso(task.completedAt) === today);
+  const totalWorked = finishedTasks.reduce((sum, task) => sum + sumSessions(task), 0);
+  const totalPrep = finishedTasks.reduce((sum, task) => sum + sumSessions(task, "preparation"), 0);
+  const totalAnimation = finishedTasks.reduce((sum, task) => sum + sumSessions(task, "animation"), 0);
+
+  return (
+    <div className="analysis-view">
+      <section className="analysis-summary">
+        <Metric label="Aktiv" value={String(activeTasks.length)} />
+        <Metric label="Heute fertig" value={String(finishedToday.length)} />
+        <Metric label="Archiviert" value={String(archivedTasks.length)} />
+        <Metric label="Gesamt erfasst" value={formatDuration(totalWorked)} />
+        <Metric label="Ø Vorbereitung" value={average(finishedTasks, "preparation")} />
+        <Metric label="Ø in Arbeit" value={average(finishedTasks, "animation")} />
+      </section>
+
+      <section className="analysis-panel">
+        <div className="analysis-head">
+          <h2>Archiv und Auswertung</h2>
+          <span>{finishedTasks.length} abgeschlossene Animationen</span>
+        </div>
+
+        {finishedTasks.length === 0 ? (
+          <div className="analysis-empty">Noch keine fertigen Animationen im Archiv.</div>
+        ) : (
+          <div className="analysis-table">
+            <div className="analysis-row analysis-row-head">
+              <span>Animation</span>
+              <span>Deadline</span>
+              <span>Sendung</span>
+              <span>Vorbereitung</span>
+              <span>in Arbeit</span>
+              <span>Gesamt</span>
+              <span>Status</span>
+            </div>
+            {finishedTasks.map((task) => {
+              const prep = sumSessions(task, "preparation");
+              const animation = sumSessions(task, "animation");
+              const total = prep + animation;
+              return (
+                <div className="analysis-row" key={task.id}>
+                  <span>
+                    <strong>{task.title}</strong>
+                    <small>{task.abbreviation || task.projectType}</small>
+                  </span>
+                  <span>{formatDateTime(task.productionDeadline)}</span>
+                  <span>{task.sendSlot}</span>
+                  <span>{formatDuration(prep)}</span>
+                  <span>{formatDuration(animation)}</span>
+                  <span>{formatDuration(total)}</span>
+                  <span>{task.archivedAt ? "Archiv" : "Heute fertig"}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {finishedTasks.length > 0 && (
+          <div className="analysis-foot">
+            <span>Vorbereitung gesamt: {formatDuration(totalPrep)}</span>
+            <span>in Arbeit gesamt: {formatDuration(totalAnimation)}</span>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
