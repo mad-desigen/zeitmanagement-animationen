@@ -1343,6 +1343,72 @@
         display: grid;
         gap: 12px;
       }
+      .mobile-timeline-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .mobile-timeline-summary div {
+        min-width: 0;
+        border: 1px solid rgba(255,255,255,.09);
+        border-radius: var(--radius);
+        background: rgba(255,255,255,.045);
+        padding: 10px;
+      }
+      .mobile-timeline-summary span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+      }
+      .mobile-timeline-summary strong {
+        display: block;
+        margin-top: 3px;
+        overflow: hidden;
+        font-size: 20px;
+        line-height: 1.1;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .mobile-slot {
+        overflow: hidden;
+        border: 1px solid var(--line-soft);
+        border-radius: var(--radius);
+        background: rgba(22, 25, 29, .88);
+      }
+      .mobile-slot-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid var(--line-soft);
+        background: linear-gradient(180deg, rgba(var(--board-tint), .18), rgba(36, 41, 50, .96));
+        padding: 12px;
+      }
+      .mobile-slot-head span {
+        display: inline-flex;
+        min-width: 0;
+        align-items: center;
+        gap: 7px;
+        font-size: 18px;
+        font-weight: 900;
+      }
+      .mobile-slot-head strong {
+        display: inline-grid;
+        place-items: center;
+        min-width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.09);
+        font-size: 13px;
+      }
+      .mobile-slot-stack {
+        display: grid;
+        gap: 10px;
+        padding: 10px;
+      }
       .mobile-timeline-item {
         border: 1px solid rgba(255,255,255,.09);
         border-left: 4px solid var(--green);
@@ -1353,10 +1419,37 @@
       }
       .mobile-timeline-item.tight { border-left-color: var(--orange); }
       .mobile-timeline-item.critical, .mobile-timeline-item.late { border-left-color: var(--pink); }
+      .mobile-timeline-top {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: start;
+      }
       .mobile-timeline-item h3 {
         margin: 0;
         font-size: 24px;
         line-height: 1.04;
+      }
+      .mobile-status-pill {
+        border-radius: 999px;
+        background: rgba(255,255,255,.08);
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+        padding: 5px 8px;
+        white-space: nowrap;
+      }
+      .mobile-timeline-item.critical .mobile-status-pill,
+      .mobile-timeline-item.late .mobile-status-pill {
+        background: rgba(240, 83, 121, .16);
+        color: #ffd5df;
+      }
+      .mobile-timeline-item.tight .mobile-status-pill {
+        background: rgba(233, 185, 73, .16);
+        color: #ffe4a3;
+      }
+      .mobile-timeline-item .cover-image {
+        margin-top: 10px;
       }
       .mobile-timeline-meta {
         display: flex;
@@ -1378,6 +1471,15 @@
         border-radius: 999px;
         background: rgba(255,255,255,.075);
         margin-top: 12px;
+      }
+      .mobile-progress-labels {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 850;
       }
       .mobile-progress span {
         display: block;
@@ -2298,27 +2400,53 @@
       const hours = Array.from({ length: timelineEnd - timelineStart + 1 }, (_, index) => timelineStart + index);
       const totalMinutes = (timelineEnd - timelineStart) * 60;
       const nowPosition = ((now.getHours() * 60 + now.getMinutes() - timelineStart * 60) / totalMinutes) * 100;
-      const mobileRows = activeTasks()
-        .sort((a, b) => new Date(a.productionDeadline) - new Date(b.productionDeadline))
-        .map(task => {
-          const state = risk(task);
-          const created = new Date(task.createdAt).getTime();
-          const deadline = new Date(task.productionDeadline).getTime();
-          const progress = Math.max(4, Math.min(100, ((now.getTime() - created) / Math.max(deadline - created, 1)) * 100));
-          const remaining = Math.max(0, Math.floor((deadline - now.getTime()) / 1000));
-          return `<article class="mobile-timeline-item ${state}">
-            <h3>${escapeHtml(task.title)}</h3>
-            ${task.coverImage ? `<button class="cover-image" data-action="view-file" data-id="${task.id}" data-file-id="${task.coverImage.id}" data-kind="cover" title="Titelbild ansehen" aria-label="Titelbild ansehen"><img src="${escapeHtml(task.coverImage.url)}" alt=""></button>` : ""}
-            <div class="mobile-timeline-meta">
-              <span title="Sendung" aria-label="Sendung">${icon("screen")}${task.sendSlot}</span>
-              <span title="Deadline" aria-label="Deadline">${icon("alarm")}${formatClock(task.productionDeadline)}</span>
-              <span title="Restzeit" aria-label="Restzeit">${icon("clock")}${formatDuration(remaining)}</span>
-              <span title="Erfasste Zeit" aria-label="Erfasste Zeit">${icon("stopwatch")}${formatDuration(sumSessions(task))}</span>
-            </div>
-            <div class="mobile-progress" aria-hidden="true" style="--progress:${progress}%"><span></span></div>
-          </article>`;
-        }).join("");
-      const rows = activeTasks().map(task => {
+      const active = activeTasks();
+      const urgent = active.filter(task => ["late", "critical", "tight"].includes(risk(task))).length;
+      const nextTask = active[0];
+      const nextDeadline = nextTask ? formatClock(nextTask.productionDeadline) : "-";
+      const slots = [...new Set([
+        ...Object.values(BROADCASTS).flatMap(broadcast => broadcast.slots),
+        ...active.map(task => task.sendSlot),
+      ])].sort((a, b) => sendSlotMinutes(a) - sendSlotMinutes(b));
+      const visibleSlots = active.length ? slots.filter(slot => active.some(task => task.sendSlot === slot)) : slots;
+      const mobileSummary = `<div class="mobile-timeline-summary">
+        <div><span>${icon("screen")}</span><strong>${active.length}</strong></div>
+        <div><span>${icon("alarm")}</span><strong>${nextDeadline}</strong></div>
+        <div><span>${icon("stopwatch")}</span><strong>${urgent}</strong></div>
+      </div>`;
+      const mobileGroups = visibleSlots.map(slot => {
+        const slotTasks = active.filter(task => task.sendSlot === slot)
+          .sort((a, b) => new Date(a.productionDeadline) - new Date(b.productionDeadline));
+        const items = slotTasks.map(task => {
+            const state = risk(task);
+            const created = new Date(task.createdAt).getTime();
+            const deadline = new Date(task.productionDeadline).getTime();
+            const progress = Math.max(4, Math.min(100, ((now.getTime() - created) / Math.max(deadline - created, 1)) * 100));
+            const remaining = Math.max(0, Math.floor((deadline - now.getTime()) / 1000));
+            const statusTitle = (COLUMNS.find(([key]) => key === task.workStatus) || [null, task.workStatus])[1];
+            return `<article class="mobile-timeline-item ${state}">
+              <div class="mobile-timeline-top">
+                <h3>${escapeHtml(task.title)}</h3>
+                <span class="mobile-status-pill">${escapeHtml(statusTitle)}</span>
+              </div>
+              ${task.coverImage ? `<button class="cover-image" data-action="view-file" data-id="${task.id}" data-file-id="${task.coverImage.id}" data-kind="cover" title="Titelbild ansehen" aria-label="Titelbild ansehen"><img src="${escapeHtml(task.coverImage.url)}" alt=""></button>` : ""}
+              <div class="mobile-timeline-meta">
+                <span title="Deadline" aria-label="Deadline">${icon("alarm")}${formatClock(task.productionDeadline)}</span>
+                <span title="Restzeit" aria-label="Restzeit">${icon("clock")}${formatDuration(remaining)}</span>
+                <span title="Erfasste Zeit" aria-label="Erfasste Zeit">${icon("stopwatch")}${formatDuration(sumSessions(task))}</span>
+                ${(task.attachments || []).length ? `<span title="Dateien" aria-label="Dateien">${icon("paperclip")}${task.attachments.length}</span>` : ""}
+              </div>
+              <div class="mobile-progress" aria-hidden="true" style="--progress:${progress}%"><span></span></div>
+              <div class="mobile-progress-labels"><span>${formatClock(task.createdAt)}</span><span>${formatClock(task.productionDeadline)}</span></div>
+            </article>`;
+          }).join("");
+        return `<section class="mobile-slot">
+          <div class="mobile-slot-head"><span>${icon("screen")}${escapeHtml(slot)}</span><strong>${slotTasks.length}</strong></div>
+          <div class="mobile-slot-stack">${items || '<div class="empty">Leer</div>'}</div>
+        </section>`;
+      }).join("");
+      const mobileRows = `<div class="mobile-timeline-list">${mobileSummary}${mobileGroups || '<div class="empty">Keine aktiven Animationen.</div>'}</div>`;
+      const rows = active.map(task => {
         const deadline = new Date(task.productionDeadline);
         const deadlineMinutes = deadline.getHours() * 60 + deadline.getMinutes();
         const created = new Date(task.createdAt);
@@ -2339,7 +2467,7 @@
           </div>
         </div>`;
       }).join("");
-      document.getElementById("view").innerHTML = `<div class="mobile-timeline-list">${mobileRows || '<div class="empty">Keine aktiven Animationen.</div>'}</div>
+      document.getElementById("view").innerHTML = `${mobileRows}
       <div class="timeline-panel">
         <div class="panel-head"><h2>Timeline</h2><span>Aktive Animationen</span></div>
         <div class="time-grid">
