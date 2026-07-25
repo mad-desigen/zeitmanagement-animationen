@@ -1,4 +1,4 @@
-const CACHE_NAME = "zeitmanagement-shell-v1";
+const CACHE_NAME = "zeitmanagement-shell-v2";
 const SHELL_FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", event => {
