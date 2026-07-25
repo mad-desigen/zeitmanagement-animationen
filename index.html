@@ -2331,6 +2331,7 @@
 	        completedAt: task.completedAt || null,
 	        archivedAt: task.archivedAt || null,
 	        deletedAt: task.deletedAt || null,
+	        permanentDeletedAt: task.permanentDeletedAt || null,
 	        attachments: normalizeFileList(task.attachments),
 	        coverImage: normalizeFileMeta(task.coverImage),
 	      };
@@ -2379,7 +2380,7 @@
       return `<svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true">${paths[name] || ""}</svg>`;
     }
     function taskVersionMs(task) {
-      const dates = [task.deletedAt, task.updatedAt, task.archivedAt, task.completedAt, task.createdAt]
+      const dates = [task.deletedAt, task.permanentDeletedAt, task.updatedAt, task.archivedAt, task.completedAt, task.createdAt]
         .concat((task.sessions || []).flatMap(session => [session.startedAt, session.endedAt]))
         .filter(Boolean)
         .map(value => new Date(value).getTime())
@@ -2400,6 +2401,7 @@
         id: task.id,
         version: taskVersionMs(task),
         status: task.workStatus,
+        permanentDeletedAt: task.permanentDeletedAt || "",
         active: task.activeTimer ? task.activeTimer.kind + task.activeTimer.startedAt : "",
       })).sort((a, b) => a.id.localeCompare(b.id)));
     }
@@ -2536,8 +2538,12 @@
       });
     }
     function purgeExpiredDeletedTasks(list, date = new Date()) {
-      const cutoff = date.getTime() - 3 * 24 * 60 * 60 * 1000;
-      return list.filter(task => !task.deletedAt || new Date(task.deletedAt).getTime() > cutoff);
+      const trashCutoff = date.getTime() - 3 * 24 * 60 * 60 * 1000;
+      const permanentCutoff = date.getTime() - 30 * 24 * 60 * 60 * 1000;
+      return list.filter(task => {
+        if (task.permanentDeletedAt) return new Date(task.permanentDeletedAt).getTime() > permanentCutoff;
+        return !task.deletedAt || new Date(task.deletedAt).getTime() > trashCutoff;
+      });
     }
     function sumSessions(task, kind) {
       let seconds = (task.sessions || [])
@@ -2589,17 +2595,17 @@
     }
     function activeTasks() {
       return tasks
-        .filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt && !task.archivedAt && !task.completedAt && task.workStatus !== "delivered")
+        .filter(task => taskIsInActiveBroadcast(task) && !task.permanentDeletedAt && !task.deletedAt && !task.archivedAt && !task.completedAt && task.workStatus !== "delivered")
         .sort((a, b) => new Date(a.productionDeadline) - new Date(b.productionDeadline));
     }
     function completedTasks() {
-      return tasks.filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt && !task.archivedAt && (task.completedAt || task.workStatus === "delivered"));
+      return tasks.filter(task => taskIsInActiveBroadcast(task) && !task.permanentDeletedAt && !task.deletedAt && !task.archivedAt && (task.completedAt || task.workStatus === "delivered"));
     }
     function archivedTasks() {
-      return tasks.filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt && task.archivedAt);
+      return tasks.filter(task => taskIsInActiveBroadcast(task) && !task.permanentDeletedAt && !task.deletedAt && task.archivedAt);
     }
     function trashTasks() {
-      return tasks.filter(task => taskIsInActiveBroadcast(task) && task.deletedAt)
+      return tasks.filter(task => taskIsInActiveBroadcast(task) && !task.permanentDeletedAt && task.deletedAt)
         .sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt));
     }
     function trashDaysLeft(task) {
@@ -2627,7 +2633,7 @@
       const active = activeTasks();
       const completed = completedTasks();
       const today = toLocalDate(now);
-      const todaysTasks = tasks.filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt && localDateFromIso(task.createdAt) === today);
+      const todaysTasks = tasks.filter(task => taskIsInActiveBroadcast(task) && !task.permanentDeletedAt && !task.deletedAt && localDateFromIso(task.createdAt) === today);
       document.getElementById("metrics").innerHTML = [
         renderMetric("Aktive Jobs", active.length),
         renderMetric("Heute erfasst", formatDuration(todaysTasks.reduce((sum, task) => sum + sumSessions(task), 0))),
@@ -2901,9 +2907,18 @@
     }
     function permanentlyDeleteTask(id) {
       const task = tasks.find(item => item.id === id);
-      if (!task) return;
+      if (!task || task.permanentDeletedAt) return;
       if (!confirm(`"${task.title}" endgültig löschen? Diese Aufgabe verschwindet dauerhaft vom Server.`)) return;
-      tasks = tasks.filter(item => String(item.id).localeCompare(String(id)) !== 0);
+      const stamp = new Date().toISOString();
+      tasks = tasks.map(item => {
+        if (item.id !== id) return item;
+        return {
+          ...closeTimer(item),
+          deletedAt: item.deletedAt || stamp,
+          permanentDeletedAt: stamp,
+          updatedAt: stamp,
+        };
+      });
       openDetailIds.delete(id);
       save();
       render();
