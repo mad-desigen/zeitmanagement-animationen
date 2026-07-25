@@ -159,6 +159,10 @@ test("supports server-backed file uploads and cropped title images", async () =>
   assert.match(standaloneApp, /class="mobile-board-tabs"/);
   assert.match(standaloneApp, /class="mobile-task-list"/);
   assert.match(standaloneApp, /class="mobile-timeline-list"/);
+  assert.match(standaloneApp, /class="svg-icon nav-icon"/);
+  assert.match(standaloneApp, /class="mobile-tab-icon"/);
+  assert.match(standaloneApp, /class="mobile-tab-count"/);
+  assert.match(standaloneApp, /const COLUMN_ICONS/);
   assert.match(standaloneApp, /class="mobile-timeline-summary"/);
   assert.match(standaloneApp, /class="mobile-slot"/);
   assert.match(standaloneApp, /class="mobile-status-pill"/);
