@@ -41,7 +41,7 @@ im Terminal, normalerweise `http://localhost:3000/`.
 - Das Tool zeigt verbleibende Zeit und erfasste Arbeitszeit.
 - Daten bleiben nach Reloads im Browser erhalten.
 - Pro Animation kann eine ZIP-Datei nach der bestehenden Windows-Vorlage
-  heruntergeladen werden: `AKT yyyy-MM-dd TYP KUERZEL` mit `_MAT` und `_ERG`.
+  heruntergeladen werden: `AKT yyyy-MM-dd TYP KUERZEL` mit `Ergebnis`, `Material` und `Preview`.
 - Browser-Benachrichtigungen warnen bei kritischen Aufgaben, solange die App offen ist.
 
 ## Datenspeicherung

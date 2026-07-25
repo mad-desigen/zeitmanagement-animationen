@@ -1732,13 +1732,14 @@
       if (window.JSZip) {
         const zip = new JSZip();
         const root = zip.folder(folderName);
-        root.folder("_MAT");
-        root.folder("_ERG");
+        root.folder("Ergebnis");
+        root.folder("Material");
+        root.folder("Preview");
         const blob = await zip.generateAsync({ type: "blob" });
         downloadBlob(blob, folderName + ".zip");
         return;
       }
-      const bat = `@echo off\r\nmkdir "${folderName}"\r\nmkdir "${folderName}\\_MAT"\r\nmkdir "${folderName}\\_ERG"\r\n`;
+      const bat = `@echo off\r\nmkdir "${folderName}"\r\nmkdir "${folderName}\\Ergebnis"\r\nmkdir "${folderName}\\Material"\r\nmkdir "${folderName}\\Preview"\r\n`;
       downloadBlob(new Blob([bat], { type: "text/plain" }), folderName + "_Ordner_anlegen.bat");
     }
     function downloadBlob(blob, filename) {
