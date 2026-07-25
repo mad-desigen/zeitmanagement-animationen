@@ -268,6 +268,34 @@
       border-radius: 3px 3px 0 0;
       background: transparent;
     }
+    .mono-icon.trash {
+      width: 16px;
+      height: 18px;
+      border: 2px solid currentColor;
+      border-top: 0;
+      border-radius: 0 0 4px 4px;
+    }
+    .mono-icon.trash::before {
+      content: "";
+      position: absolute;
+      left: -3px;
+      top: -5px;
+      width: 22px;
+      height: 2px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+    .mono-icon.trash::after {
+      content: "";
+      position: absolute;
+      left: 5px;
+      top: -8px;
+      width: 6px;
+      height: 3px;
+      border: 2px solid currentColor;
+      border-bottom: 0;
+      border-radius: 3px 3px 0 0;
+    }
     .switch {
       display: inline-grid;
       grid-template-columns: repeat(5, minmax(105px, 1fr));
@@ -414,10 +442,27 @@
     }
     .card-title-row h3 {
       margin: 0;
+      flex: 1;
       font-size: 24px;
       font-weight: 900;
       line-height: 1.06;
       letter-spacing: 0;
+    }
+    .delete-card {
+      width: 34px;
+      min-width: 34px;
+      min-height: 34px;
+      display: grid;
+      place-items: center;
+      padding: 6px;
+      border-color: rgba(240, 83, 121, .3);
+      background: rgba(240, 83, 121, .08);
+      color: #f5a4b8;
+    }
+    .delete-card:hover {
+      border-color: rgba(240, 83, 121, .65);
+      background: rgba(240, 83, 121, .16);
+      color: white;
     }
     .deadline-pill {
       flex: 0 0 auto;
@@ -1398,6 +1443,7 @@
         <div class="card-main">
           <div class="card-title-row">
             <h3>${escapeHtml(task.title)}</h3>
+            <button class="delete-card" data-action="delete" data-id="${task.id}" title="Aufgabe löschen" aria-label="Aufgabe löschen"><span class="mono-icon trash"></span></button>
           </div>
           <div class="card-focus">
             <div class="time-left">
@@ -1679,6 +1725,15 @@
       save();
       render();
     }
+    function deleteTask(id) {
+      const task = tasks.find(item => item.id === id);
+      if (!task) return;
+      if (!confirm(`"${task.title}" wirklich löschen?`)) return;
+      tasks = tasks.filter(item => item.id !== id);
+      openDetailIds.delete(id);
+      save();
+      render();
+    }
     function startTimer(id, kind) {
       tasks = tasks.map(task => {
         if (task.id !== id) return task;
@@ -1905,6 +1960,7 @@
         if (button.dataset.action === "folder") downloadFolder(button.dataset.id);
         if (button.dataset.action === "edit") openDialog(button.dataset.id);
         if (button.dataset.action === "move") moveTask(button.dataset.id, button.dataset.status);
+        if (button.dataset.action === "delete") deleteTask(button.dataset.id);
         return;
       }
       if (event.target.id === "saveBackup") saveBackup();
