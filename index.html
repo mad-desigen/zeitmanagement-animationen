@@ -792,6 +792,31 @@
       color: var(--muted);
       line-height: 1.45;
     }
+    .settings-card label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .settings-card input {
+      width: 100%;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.045);
+      color: var(--text);
+      padding: 10px 11px;
+    }
+    .sync-status {
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .sync-status.ok { color: var(--green); }
+    .sync-status.warn { color: var(--orange); }
+    .sync-status.error { color: var(--pink); }
     .table { min-width: 980px; }
     .row {
       display: grid;
@@ -996,6 +1021,11 @@
 
   <script>
     const STORAGE_KEY = "zeitmanagement-tool-v3";
+    const SYNC_KEY = "zeitmanagement-github-sync-v1";
+    const GITHUB_OWNER = "mad-desigen";
+    const GITHUB_REPO = "zeitmanagement-animationen";
+    const GITHUB_BRANCH = "main";
+    const GITHUB_DATA_PATH = "data/tasks.json";
     const SEND_SLOTS = ["17:45", "19:30", "21:45"];
     const COLUMNS = [
       ["planning", "in Planung"],
@@ -1016,6 +1046,10 @@
     let draggingTaskId = null;
     let lastArchiveDate = toLocalDate(new Date());
     let tasks = archiveCompletedTasks(loadTasks(), now);
+    let syncSettings = loadSyncSettings();
+    let syncStatus = { tone: "", text: "GitHub-Sync nicht eingerichtet." };
+    let syncTimer = null;
+    let isSyncing = false;
 
     function uid() {
       return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
@@ -1087,6 +1121,7 @@
         activeTimer: task.activeTimer || null,
         sessions: task.sessions || [],
         createdAt: task.createdAt || new Date().toISOString(),
+        updatedAt: task.updatedAt || task.completedAt || task.archivedAt || task.createdAt || new Date().toISOString(),
         completedAt: task.completedAt || null,
         archivedAt: task.archivedAt || null,
       };
@@ -1106,6 +1141,133 @@
       save();
       render();
     }
+    function loadSyncSettings() {
+      try {
+        return {
+          enabled: localStorage.getItem(SYNC_KEY + ":enabled") === "true",
+          token: localStorage.getItem(SYNC_KEY + ":token") || "",
+        };
+      } catch {
+        return { enabled: false, token: "" };
+      }
+    }
+    function saveSyncSettings(settings = syncSettings) {
+      syncSettings = settings;
+      localStorage.setItem(SYNC_KEY + ":enabled", settings.enabled ? "true" : "false");
+      if (settings.token) localStorage.setItem(SYNC_KEY + ":token", settings.token);
+      else localStorage.removeItem(SYNC_KEY + ":token");
+    }
+    function taskVersionMs(task) {
+      const dates = [task.updatedAt, task.archivedAt, task.completedAt, task.createdAt]
+        .concat((task.sessions || []).flatMap(session => [session.startedAt, session.endedAt]))
+        .filter(Boolean)
+        .map(value => new Date(value).getTime())
+        .filter(Number.isFinite);
+      return dates.length ? Math.max(...dates) : 0;
+    }
+    function mergeTasks(localList, remoteList) {
+      const map = new Map();
+      localList.map(normalizeTask).forEach(task => map.set(task.id, task));
+      remoteList.map(normalizeTask).forEach(task => {
+        const current = map.get(task.id);
+        if (!current || taskVersionMs(task) >= taskVersionMs(current)) map.set(task.id, task);
+      });
+      return Array.from(map.values()).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+    function touch(task) {
+      return { ...task, updatedAt: new Date().toISOString() };
+    }
+    function encodeBase64Utf8(value) {
+      return btoa(unescape(encodeURIComponent(value)));
+    }
+    function decodeBase64Utf8(value) {
+      return decodeURIComponent(escape(atob(value.replace(/\n/g, ""))));
+    }
+    function githubHeaders() {
+      const headers = {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      };
+      if (syncSettings.token) headers.Authorization = "Bearer " + syncSettings.token;
+      return headers;
+    }
+    function githubFileUrl() {
+      return `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_DATA_PATH}`;
+    }
+    async function readGithubStore() {
+      const response = await fetch(githubFileUrl() + "?ref=" + encodeURIComponent(GITHUB_BRANCH), {
+        headers: githubHeaders(),
+      });
+      if (response.status === 404) return { sha: null, tasks: [] };
+      if (!response.ok) throw new Error("GitHub konnte nicht gelesen werden.");
+      const file = await response.json();
+      const data = JSON.parse(decodeBase64Utf8(file.content || ""));
+      const remoteTasks = Array.isArray(data) ? data : data && Array.isArray(data.tasks) ? data.tasks : [];
+      return { sha: file.sha, tasks: remoteTasks.map(normalizeTask) };
+    }
+    async function writeGithubStore() {
+      if (!syncSettings.token) throw new Error("Zum Speichern fehlt der GitHub-Token.");
+      const remote = await readGithubStore();
+      const merged = mergeTasks(tasks, remote.tasks);
+      const payload = {
+        app: "zeitmanagement",
+        version: 5,
+        updatedAt: new Date().toISOString(),
+        tasks: merged,
+      };
+      const response = await fetch(githubFileUrl(), {
+        method: "PUT",
+        headers: { ...githubHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: "Update Zeitmanagement data",
+          content: encodeBase64Utf8(JSON.stringify(payload, null, 2)),
+          branch: GITHUB_BRANCH,
+          sha: remote.sha || undefined,
+        }),
+      });
+      if (!response.ok) throw new Error("GitHub konnte nicht gespeichert werden.");
+      tasks = archiveCompletedTasks(merged, new Date());
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      syncStatus = { tone: "ok", text: "GitHub gespeichert: " + formatClock(new Date()) };
+    }
+    async function loadFromGithub({ silent = false } = {}) {
+      if (isSyncing) return;
+      isSyncing = true;
+      try {
+        const remote = await readGithubStore();
+        tasks = archiveCompletedTasks(mergeTasks(tasks, remote.tasks), new Date());
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        syncStatus = { tone: "ok", text: "GitHub geladen: " + formatClock(new Date()) };
+        render();
+      } catch (error) {
+        syncStatus = { tone: "error", text: error.message };
+        if (!silent) alert(error.message);
+        render();
+      } finally {
+        isSyncing = false;
+      }
+    }
+    async function saveToGithub({ silent = false } = {}) {
+      if (isSyncing) return;
+      isSyncing = true;
+      try {
+        await writeGithubStore();
+        if (!silent) alert("GitHub wurde gespeichert.");
+        render();
+      } catch (error) {
+        syncStatus = { tone: "error", text: error.message };
+        if (!silent) alert(error.message);
+        render();
+      } finally {
+        isSyncing = false;
+      }
+    }
+    function queueGithubSync() {
+      if (!syncSettings.enabled || !syncSettings.token) return;
+      clearTimeout(syncTimer);
+      syncStatus = { tone: "warn", text: "GitHub-Sync wartet..." };
+      syncTimer = setTimeout(() => saveToGithub({ silent: true }), 900);
+    }
     function loadTasks() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("zeitmanagement-tool-v2") || localStorage.getItem("zeitmanagement-tool-v1");
@@ -1116,6 +1278,7 @@
     }
     function save() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      queueGithubSync();
     }
     function saveBackup() {
       downloadJson(makeBackup(), `zeitmanagement-backup-${toLocalDate(new Date())}.json`);
@@ -1136,7 +1299,7 @@
       const today = toLocalDate(date);
       return list.map(task => {
         if (task.archivedAt || !task.completedAt || localDateFromIso(task.completedAt) >= today) return task;
-        return { ...task, archivedAt: date.toISOString() };
+        return touch({ ...task, archivedAt: date.toISOString() });
       });
     }
     function sumSessions(task, kind) {
@@ -1177,6 +1340,7 @@
       return {
         ...task,
         activeTimer: null,
+        updatedAt: endedAt,
         sessions: [...task.sessions, {
           id: uid(),
           kind: task.activeTimer.kind,
@@ -1203,7 +1367,7 @@
       tasks = tasks.map(task => {
         if (task.archivedAt || !task.completedAt) return task;
         changed = true;
-        return { ...task, archivedAt: stamp };
+        return touch({ ...task, archivedAt: stamp });
       });
       if (changed) save();
       render();
@@ -1408,7 +1572,7 @@
         <section class="settings-grid">
           <div class="settings-card">
             <h3>Daten sichern</h3>
-            <p>Speichert alle Aufgaben, Zeiten und Archivdaten als Backup-Datei. Das ist die sichere Alternative zu einer Git-Datenbank im Browser.</p>
+            <p>Speichert alle Aufgaben, Zeiten und Archivdaten als Backup-Datei.</p>
             <div class="settings-actions">
               <button class="secondary" id="saveBackup">Backup speichern</button>
               <button class="secondary" id="loadBackup">Backup laden</button>
@@ -1426,7 +1590,19 @@
           </div>
           <div class="settings-card">
             <h3>Speicherort</h3>
-            <p>Die App läuft über GitHub Pages. Arbeitsdaten bleiben lokal im Browser und sollten regelmäßig per Backup gesichert werden.</p>
+            <p>GitHub ist die gemeinsame Datenablage. Lesen geht öffentlich, Speichern braucht einen Token mit Schreibrecht auf dieses Repo.</p>
+            <label>GitHub-Token
+              <input id="syncToken" type="password" value="${escapeHtml(syncSettings.token)}" placeholder="github_pat_...">
+            </label>
+            <label>
+              <span><input id="syncEnabled" type="checkbox" ${syncSettings.enabled ? "checked" : ""}> Automatisch nach GitHub speichern</span>
+            </label>
+            <div class="settings-actions">
+              <button class="secondary" id="saveSyncSettings">Verbindung speichern</button>
+              <button class="secondary" id="loadGithub">GitHub laden</button>
+              <button class="secondary" id="saveGithub">GitHub speichern</button>
+            </div>
+            <div class="sync-status ${syncStatus.tone}" id="syncStatus">${escapeHtml(syncStatus.text)}</div>
           </div>
         </section>`;
     }
@@ -1505,7 +1681,7 @@
     function createTask() {
       const form = readForm();
       if (editingId) {
-        tasks = tasks.map(task => task.id === editingId ? { ...task, ...form } : task);
+        tasks = tasks.map(task => task.id === editingId ? touch({ ...task, ...form }) : task);
       } else {
         tasks.unshift({
           id: uid(),
@@ -1514,6 +1690,7 @@
           activeTimer: null,
           sessions: [],
           createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
           completedAt: null,
           archivedAt: null,
         });
@@ -1526,7 +1703,7 @@
       tasks = tasks.map(task => {
         if (task.id !== id) return task;
         const closed = closeTimer(task);
-        return { ...closed, workStatus: status, completedAt: status === "delivered" ? new Date().toISOString() : null };
+        return touch({ ...closed, workStatus: status, completedAt: status === "delivered" ? new Date().toISOString() : null });
       });
       save();
       render();
@@ -1538,7 +1715,7 @@
           return closeTimer(task);
         }
         const closed = closeTimer(task);
-        return { ...closed, activeTimer: { kind, startedAt: new Date().toISOString() }, workStatus: kind === "preparation" ? "planning" : "animation" };
+        return touch({ ...closed, activeTimer: { kind, startedAt: new Date().toISOString() }, workStatus: kind === "preparation" ? "planning" : "animation" });
       });
       save();
       render();
@@ -1661,6 +1838,7 @@
               activeTimer: null,
               sessions: [],
               createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
               completedAt: status === "delivered" ? new Date().toISOString() : null,
               archivedAt: null,
             });
@@ -1755,6 +1933,15 @@
       if (event.target.id === "loadBackup") document.getElementById("backupFile").click();
       if (event.target.id === "importCsv") document.getElementById("csvFile").click();
       if (event.target.id === "closeDay") archiveWorkday();
+      if (event.target.id === "saveSyncSettings") {
+        const token = document.getElementById("syncToken").value.trim();
+        const enabled = document.getElementById("syncEnabled").checked;
+        saveSyncSettings({ token, enabled });
+        syncStatus = { tone: "ok", text: enabled && token ? "GitHub-Sync aktiv." : "GitHub-Verbindung gespeichert." };
+        render();
+      }
+      if (event.target.id === "loadGithub") loadFromGithub();
+      if (event.target.id === "saveGithub") saveToGithub();
     });
     document.getElementById("view").addEventListener("input", event => {
       if (event.target.id !== "analysisSearch") return;
@@ -1804,8 +1991,8 @@
 
     renderSlots();
     updateNotificationButton("Notification" in window ? Notification.permission : "default");
-    save();
     render();
+    loadFromGithub({ silent: true });
   </script>
 </body>
 </html>
