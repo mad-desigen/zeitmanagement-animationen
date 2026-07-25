@@ -1688,6 +1688,11 @@
       save();
       render();
     }
+    function shouldPauseLiveRender() {
+      const active = document.activeElement;
+      const isTyping = active && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName);
+      return view === "settings" || document.getElementById("modal").classList.contains("open") || isTyping;
+    }
     async function downloadFolder(id) {
       const task = tasks.find(item => item.id === id);
       if (!task) return;
@@ -1951,6 +1956,7 @@
       }
       warnCritical();
       if (draggingTaskId) return;
+      if (shouldPauseLiveRender()) return;
       render();
     }, 1000);
 
