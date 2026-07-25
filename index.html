@@ -890,6 +890,7 @@
     let analysisQuery = "";
     let now = new Date();
     let warned = new Set();
+    let openDetailIds = new Set();
     let lastArchiveDate = toLocalDate(new Date());
     let tasks = archiveCompletedTasks(loadTasks(), now);
 
@@ -1156,7 +1157,7 @@
             ${preparationActive ? '<span title="Vorbereitung läuft" aria-label="Vorbereitung läuft">◷</span>' : ""}
           </div>
         </div>
-        <details>
+        <details data-details-id="${task.id}" ${openDetailIds.has(task.id) ? "open" : ""}>
           <summary><span class="details-toggle" title="Details anzeigen" aria-label="Details anzeigen"></span></summary>
           <div class="card-details">
             <div class="kicker">
@@ -1627,6 +1628,12 @@
       analysisQuery = event.target.value;
       renderAnalysis();
     });
+    document.getElementById("view").addEventListener("toggle", event => {
+      const details = event.target.closest("details[data-details-id]");
+      if (!details) return;
+      if (details.open) openDetailIds.add(details.dataset.detailsId);
+      else openDetailIds.delete(details.dataset.detailsId);
+    }, true);
     document.getElementById("view").addEventListener("dragstart", event => {
       const card = event.target.closest(".card");
       if (card) event.dataTransfer.setData("text/task-id", card.dataset.id);
