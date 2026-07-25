@@ -2108,7 +2108,7 @@
     let openDetailIds = new Set();
     let draggingTaskId = null;
     let lastArchiveDate = toLocalDate(new Date());
-    let tasks = archiveCompletedTasks(loadTasks(), now);
+    let tasks = purgeExpiredDeletedTasks(archiveCompletedTasks(loadTasks(), now), now);
     let syncStatus = { tone: "ok", text: "Server-Sync aktiv." };
     let syncTimer = null;
     let isSyncing = false;
@@ -2446,7 +2446,7 @@
         const before = tasksSignature(tasks);
         const remote = await apiRequest("load");
         const remoteTasks = remote.tasks || [];
-        const merged = archiveCompletedTasks(mergeTasks(tasks, remoteTasks), new Date());
+        const merged = purgeExpiredDeletedTasks(archiveCompletedTasks(mergeTasks(tasks, remoteTasks), new Date()), new Date());
         const remoteSignature = tasksSignature(remoteTasks.map(normalizeTask));
         const mergedSignature = tasksSignature(merged);
         tasks = merged;
@@ -2477,7 +2477,7 @@
       isSyncing = true;
       try {
         const remote = await apiRequest("save", { tasks, boards: boardState() });
-        tasks = archiveCompletedTasks(mergeTasks(tasks, remote.tasks || []), new Date());
+        tasks = purgeExpiredDeletedTasks(archiveCompletedTasks(mergeTasks(tasks, remote.tasks || []), new Date()), new Date());
         applyBoardState(remote.boards);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
         syncStatus = { tone: "ok", text: "Server gespeichert: " + formatClock(new Date()) };
@@ -2530,9 +2530,14 @@
     function archiveCompletedTasks(list, date = new Date()) {
       const today = toLocalDate(date);
       return list.map(task => {
-        if (task.deletedAt || task.archivedAt || !task.completedAt || localDateFromIso(task.completedAt) >= today) return task;
-        return touch({ ...task, archivedAt: date.toISOString() });
+        const finishedAt = task.completedAt || (task.workStatus === "delivered" ? task.updatedAt || task.createdAt : null);
+        if (task.deletedAt || task.archivedAt || !finishedAt || localDateFromIso(finishedAt) >= today) return task;
+        return touch({ ...task, completedAt: task.completedAt || finishedAt, archivedAt: date.toISOString() });
       });
+    }
+    function purgeExpiredDeletedTasks(list, date = new Date()) {
+      const cutoff = date.getTime() - 3 * 24 * 60 * 60 * 1000;
+      return list.filter(task => !task.deletedAt || new Date(task.deletedAt).getTime() > cutoff);
     }
     function sumSessions(task, kind) {
       let seconds = (task.sessions || [])
@@ -2593,13 +2598,23 @@
     function archivedTasks() {
       return tasks.filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt && task.archivedAt);
     }
+    function trashTasks() {
+      return tasks.filter(task => taskIsInActiveBroadcast(task) && task.deletedAt)
+        .sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt));
+    }
+    function trashDaysLeft(task) {
+      const deletedAt = new Date(task.deletedAt).getTime();
+      if (!Number.isFinite(deletedAt)) return 3;
+      const expiresAt = deletedAt + 3 * 24 * 60 * 60 * 1000;
+      return Math.max(0, Math.ceil((expiresAt - now.getTime()) / (24 * 60 * 60 * 1000)));
+    }
     function archiveWorkday() {
       const stamp = new Date().toISOString();
       let changed = false;
       tasks = tasks.map(task => {
-        if (task.deletedAt || task.archivedAt || !task.completedAt) return task;
+        if (task.deletedAt || task.archivedAt || !(task.completedAt || task.workStatus === "delivered")) return task;
         changed = true;
-        return touch({ ...task, archivedAt: stamp });
+        return touch({ ...task, activeTimer: null, workStatus: "delivered", completedAt: task.completedAt || stamp, archivedAt: stamp });
       });
       if (changed) save();
       render();
@@ -2870,12 +2885,39 @@
       save();
       render();
     }
+    function restoreDeletedTask(id) {
+      const task = tasks.find(item => item.id === id);
+      if (!task || !task.deletedAt) return;
+      if (!confirm(`"${task.title}" aus dem Papierkorb wiederherstellen?`)) return;
+      const stamp = new Date().toISOString();
+      tasks = tasks.map(item => {
+        if (item.id !== id) return item;
+        return touch({ ...item, deletedAt: null, archivedAt: null, activeTimer: null, workStatus: item.workStatus || "planning", updatedAt: stamp });
+      });
+      view = "board";
+      mobileColumn = task.workStatus || "planning";
+      save();
+      render();
+    }
+    function permanentlyDeleteTask(id) {
+      const task = tasks.find(item => item.id === id);
+      if (!task) return;
+      if (!confirm(`"${task.title}" endgültig löschen? Diese Aufgabe verschwindet dauerhaft vom Server.`)) return;
+      tasks = tasks.filter(item => String(item.id).localeCompare(String(id)) !== 0);
+      openDetailIds.delete(id);
+      save();
+      render();
+    }
     function renderArchive() {
       const archived = archivedTasks().sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt));
+      const trashed = trashTasks();
       const query = normalizeText(analysisQuery);
       const filtered = query
         ? archived.filter(task => [task.title, task.abbreviation, task.requester, task.description, task.sendSlot].some(value => normalizeText(value).includes(query)))
         : archived;
+      const filteredTrash = query
+        ? trashed.filter(task => [task.title, task.abbreviation, task.requester, task.description, task.sendSlot].some(value => normalizeText(value).includes(query)))
+        : trashed;
       const rows = filtered.map(task => {
         const prep = sumSessions(task, "preparation");
         const animation = sumSessions(task, "animation");
@@ -2893,9 +2935,26 @@
           </span>
         </div>`;
       }).join("");
+      const trashRows = filteredTrash.map(task => {
+        const prep = sumSessions(task, "preparation");
+        const animation = sumSessions(task, "animation");
+        return `<div class="row archive-row">
+          <span><strong>${escapeHtml(task.title)}</strong><small>${escapeHtml(task.abbreviation || task.projectType)}</small></span>
+          <span>${formatDateTime(task.productionDeadline)}</span>
+          <span>${task.sendSlot}</span>
+          <span>${formatDuration(prep)}</span>
+          <span>${formatDuration(animation)}</span>
+          <span>${formatDuration(prep + animation)}</span>
+          <span>${trashDaysLeft(task)} Tage</span>
+          <span class="archive-actions">
+            <button type="button" class="secondary card-icon-button" data-action="restore-deleted" data-id="${task.id}" title="Wiederherstellen" aria-label="Wiederherstellen">${icon("restore")}</button>
+            <button type="button" class="delete-action card-icon-button" data-action="permanent-delete" data-id="${task.id}" title="Endgültig löschen" aria-label="Endgültig löschen">${icon("trash")}</button>
+          </span>
+        </div>`;
+      }).join("");
       document.getElementById("view").innerHTML = `
         <div class="analysis-tools">
-          <input id="analysisSearch" value="${escapeHtml(analysisQuery)}" placeholder="Archiv durchsuchen">
+          <input id="analysisSearch" value="${escapeHtml(analysisQuery)}" placeholder="Archiv und Papierkorb durchsuchen">
         </div>
         <section class="analysis-panel">
           <div class="panel-head"><h2>Archiv</h2><span>${filtered.length} von ${archived.length} archivierten Animationen</span></div>
@@ -2903,6 +2962,13 @@
             <div class="row head archive-row"><span>Animation</span><span>Deadline</span><span>Sendung</span><span>Vorbereitung</span><span>in Arbeit</span><span>Gesamt</span><span>Archiviert</span><span>Aktionen</span></div>
             ${rows}
           </div>` : '<div class="empty">Keine archivierten Aufgaben gefunden.</div>'}
+        </section>
+        <section class="analysis-panel">
+          <div class="panel-head"><h2>Papierkorb</h2><span>${filteredTrash.length} von ${trashed.length} gelöschten Aufgaben, automatische Löschung nach 3 Tagen</span></div>
+          ${filteredTrash.length ? `<div class="table">
+            <div class="row head archive-row"><span>Animation</span><span>Deadline</span><span>Sendung</span><span>Vorbereitung</span><span>in Arbeit</span><span>Gesamt</span><span>Restzeit</span><span>Aktionen</span></div>
+            ${trashRows}
+          </div>` : '<div class="empty">Papierkorb ist leer.</div>'}
         </section>`;
     }
 	    function renderSettings() {
@@ -3667,6 +3733,8 @@
 	        if (button.dataset.action === "move") moveTask(button.dataset.id, button.dataset.status);
         if (button.dataset.action === "delete") deleteTask(button.dataset.id);
         if (button.dataset.action === "reactivate") reactivateTask(button.dataset.id);
+        if (button.dataset.action === "restore-deleted") restoreDeletedTask(button.dataset.id);
+        if (button.dataset.action === "permanent-delete") permanentlyDeleteTask(button.dataset.id);
         return;
       }
       if (event.target.id === "saveBackup") saveBackup();
@@ -3715,7 +3783,7 @@
       const today = toLocalDate(now);
       if (today !== lastArchiveDate) {
         lastArchiveDate = today;
-        tasks = archiveCompletedTasks(tasks, now);
+        tasks = purgeExpiredDeletedTasks(archiveCompletedTasks(tasks, now), now);
         save();
       }
       warnCritical();
