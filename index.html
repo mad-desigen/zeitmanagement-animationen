@@ -2104,11 +2104,16 @@
       save();
       render();
     }
-    function shouldPauseLiveRender() {
-      const active = document.activeElement;
-      const isTyping = active && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName);
-	      return view === "settings" || document.getElementById("modal").classList.contains("open") || document.getElementById("cropModal").classList.contains("open") || isTyping;
-    }
+	    function shouldPauseLiveRender() {
+	      const active = document.activeElement;
+	      const isTyping = active && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName);
+	      const isInspectingCard = Boolean(document.querySelector(".card:hover"));
+	      return view === "settings"
+	        || document.getElementById("modal").classList.contains("open")
+	        || document.getElementById("cropModal").classList.contains("open")
+	        || isTyping
+	        || isInspectingCard;
+	    }
     async function downloadFolder(id) {
       const task = tasks.find(item => item.id === id);
       if (!task) return;

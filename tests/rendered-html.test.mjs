@@ -134,6 +134,7 @@ test("supports server-backed file uploads and cropped title images", async () =>
   assert.match(standaloneApp, /coverImage:\s*normalizeFileMeta\(task\.coverImage\)/);
   assert.match(standaloneApp, /action=upload/);
   assert.match(standaloneApp, /data-action="attach"/);
+  assert.match(standaloneApp, /isInspectingCard = Boolean\(document\.querySelector\("\.card:hover"\)\)/);
   assert.match(api, /CREATE TABLE IF NOT EXISTS uploaded_files/);
   assert.match(api, /function handleUpload\(\): never/);
   assert.match(api, /function streamFile\(\): never/);
