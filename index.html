@@ -138,9 +138,30 @@
       background: rgba(255,255,255,.045);
       color: var(--text);
     }
+    .icon-button {
+      width: 42px;
+      min-width: 42px;
+      display: inline-grid;
+      place-items: center;
+      padding: 8px;
+    }
+    .icon-button svg {
+      width: 19px;
+      height: 19px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .icon-button.active {
+      border-color: var(--yellow);
+      background: var(--yellow);
+      color: #151515;
+    }
     .switch {
       display: inline-grid;
-      grid-template-columns: repeat(3, minmax(105px, 1fr));
+      grid-template-columns: repeat(5, minmax(105px, 1fr));
       overflow: hidden;
       border: 1px solid var(--line-soft);
       border-radius: var(--radius);
@@ -469,7 +490,8 @@
       gap: 12px;
       margin-bottom: 14px;
     }
-    .analysis-tools {
+    .analysis-tools,
+    .settings-actions {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
@@ -483,6 +505,26 @@
       background: rgba(255,255,255,.045);
       color: var(--text);
       padding: 10px 11px;
+    }
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .settings-card {
+      border: 1px solid #353535;
+      border-radius: 8px;
+      background: #1f1f1f;
+      padding: 16px;
+    }
+    .settings-card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+    .settings-card p {
+      margin: 0 0 14px;
+      color: var(--muted);
+      line-height: 1.45;
     }
     .table { min-width: 980px; }
     .row {
@@ -602,7 +644,7 @@
     .suggestion.visible { display: block; }
     @media (max-width: 900px) {
       .header-row { align-items: stretch; flex-direction: column; }
-      .metrics, .learning, .analysis-summary, .grid-2 { grid-template-columns: 1fr; }
+      .metrics, .learning, .analysis-summary, .grid-2, .settings-grid { grid-template-columns: 1fr; }
       .switch { width: 100%; }
     }
   </style>
@@ -615,16 +657,19 @@
     </div>
     <div class="actions">
       <button class="add" id="openDialog"><span>+</span> Aufgabe hinzufügen</button>
-      <button class="secondary" id="importCsv">CSV importieren</button>
-      <button class="secondary" id="saveBackup">Backup speichern</button>
-      <button class="secondary" id="loadBackup">Backup laden</button>
-      <button class="secondary" id="closeDay">Arbeitstag abschließen</button>
       <div class="switch" aria-label="Ansicht wechseln">
         <button class="active" data-view="board">Kanban</button>
         <button data-view="timeline">Timeline</button>
         <button data-view="analysis">Analyse</button>
+        <button data-view="archive">Archiv</button>
+        <button data-view="settings">Einstellungen</button>
       </div>
-      <button id="notify">Benachrichtigungen aktivieren</button>
+      <button class="icon-button" id="notify" title="Benachrichtigungen aktivieren" aria-label="Benachrichtigungen aktivieren">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+          <path d="M10 21h4"></path>
+        </svg>
+      </button>
       <input id="csvFile" type="file" accept=".csv,.txt" hidden>
       <input id="backupFile" type="file" accept=".json,application/json" hidden>
     </div>
@@ -918,6 +963,8 @@
       document.querySelectorAll(".switch button").forEach(button => button.classList.toggle("active", button.dataset.view === view));
       if (view === "timeline") renderTimeline();
       else if (view === "analysis") renderAnalysis();
+      else if (view === "archive") renderArchive();
+      else if (view === "settings") renderSettings();
       else renderBoard();
     }
     function renderBoard() {
@@ -998,13 +1045,34 @@
     }
     function renderAnalysis() {
       const finished = completedTasks().concat(archivedTasks()).sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt));
-      const query = normalizeText(analysisQuery);
-      const filtered = query
-        ? finished.filter(task => [task.title, task.abbreviation, task.requester, task.description, task.sendSlot].some(value => normalizeText(value).includes(query)))
-        : finished;
       const today = toLocalDate(now);
       const finishedToday = finished.filter(task => task.completedAt && localDateFromIso(task.completedAt) === today);
       const totalWorked = finished.reduce((sum, task) => sum + sumSessions(task), 0);
+      document.getElementById("view").innerHTML = `
+        <section class="analysis-summary">
+          ${renderMetric("Aktiv", activeTasks().length)}
+          ${renderMetric("Heute fertig", finishedToday.length)}
+          ${renderMetric("Archiviert", archivedTasks().length)}
+          ${renderMetric("Gesamt erfasst", formatDuration(totalWorked))}
+          ${renderMetric("Ø Vorbereitung", average(finished, "preparation"))}
+          ${renderMetric("Ø in Arbeit", average(finished, "animation"))}
+        </section>
+        <section class="analysis-panel">
+          <div class="panel-head"><h2>Analyse</h2><span>Zeiten aus abgeschlossenen Animationen</span></div>
+          <div class="table">
+            <div class="row head"><span>Kennzahl</span><span>Wert</span><span>Grundlage</span><span></span><span></span><span></span><span></span></div>
+            <div class="row"><span><strong>Vorbereitung gesamt</strong></span><span>${formatDuration(finished.reduce((sum, task) => sum + sumSessions(task, "preparation"), 0))}</span><span>${finished.length} Aufgaben</span><span></span><span></span><span></span><span></span></div>
+            <div class="row"><span><strong>in Arbeit gesamt</strong></span><span>${formatDuration(finished.reduce((sum, task) => sum + sumSessions(task, "animation"), 0))}</span><span>${finished.length} Aufgaben</span><span></span><span></span><span></span><span></span></div>
+            <div class="row"><span><strong>Heute abgeschlossen</strong></span><span>${finishedToday.length}</span><span>${today}</span><span></span><span></span><span></span><span></span></div>
+          </div>
+        </section>`;
+    }
+    function renderArchive() {
+      const archived = archivedTasks().sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt));
+      const query = normalizeText(analysisQuery);
+      const filtered = query
+        ? archived.filter(task => [task.title, task.abbreviation, task.requester, task.description, task.sendSlot].some(value => normalizeText(value).includes(query)))
+        : archived;
       const rows = filtered.map(task => {
         const prep = sumSessions(task, "preparation");
         const animation = sumSessions(task, "animation");
@@ -1015,27 +1083,46 @@
           <span>${formatDuration(prep)}</span>
           <span>${formatDuration(animation)}</span>
           <span>${formatDuration(prep + animation)}</span>
-          <span>${task.archivedAt ? "Archiv" : "Heute fertig"}</span>
+          <span>${task.archivedAt ? formatDateTime(task.archivedAt) : "Archiv"}</span>
         </div>`;
       }).join("");
       document.getElementById("view").innerHTML = `
-        <section class="analysis-summary">
-          ${renderMetric("Aktiv", activeTasks().length)}
-          ${renderMetric("Heute fertig", finishedToday.length)}
-          ${renderMetric("Archiviert", archivedTasks().length)}
-          ${renderMetric("Gesamt erfasst", formatDuration(totalWorked))}
-          ${renderMetric("Ø Vorbereitung", average(finished, "preparation"))}
-          ${renderMetric("Ø in Arbeit", average(finished, "animation"))}
-        </section>
         <div class="analysis-tools">
           <input id="analysisSearch" value="${escapeHtml(analysisQuery)}" placeholder="Archiv durchsuchen">
         </div>
         <section class="analysis-panel">
-          <div class="panel-head"><h2>Archiv und Auswertung</h2><span>${filtered.length} von ${finished.length} abgeschlossenen Animationen</span></div>
+          <div class="panel-head"><h2>Archiv</h2><span>${filtered.length} von ${archived.length} archivierten Animationen</span></div>
           ${filtered.length ? `<div class="table">
-            <div class="row head"><span>Animation</span><span>Deadline</span><span>Sendung</span><span>Vorbereitung</span><span>in Arbeit</span><span>Gesamt</span><span>Status</span></div>
+            <div class="row head"><span>Animation</span><span>Deadline</span><span>Sendung</span><span>Vorbereitung</span><span>in Arbeit</span><span>Gesamt</span><span>Archiviert</span></div>
             ${rows}
-          </div>` : '<div class="empty">Keine passenden Archiv-Einträge gefunden.</div>'}
+          </div>` : '<div class="empty">Keine archivierten Aufgaben gefunden.</div>'}
+        </section>`;
+    }
+    function renderSettings() {
+      document.getElementById("view").innerHTML = `
+        <section class="settings-grid">
+          <div class="settings-card">
+            <h3>Daten sichern</h3>
+            <p>Speichert alle Aufgaben, Zeiten und Archivdaten als Backup-Datei. Das ist die sichere Alternative zu einer Git-Datenbank im Browser.</p>
+            <div class="settings-actions">
+              <button class="secondary" id="saveBackup">Backup speichern</button>
+              <button class="secondary" id="loadBackup">Backup laden</button>
+            </div>
+          </div>
+          <div class="settings-card">
+            <h3>Aufgaben importieren</h3>
+            <p>Importiert CSV-Dateien aus Planner, Teams oder Excel. Doppelte Aufgaben werden über Titel und Deadline übersprungen.</p>
+            <button class="secondary" id="importCsv">CSV importieren</button>
+          </div>
+          <div class="settings-card">
+            <h3>Tagesabschluss</h3>
+            <p>Archiviert alle Aufgaben, die in Fertig liegen. Sie verschwinden aus dem Kanban und bleiben im Archiv abrufbar.</p>
+            <button class="secondary" id="closeDay">Arbeitstag abschließen</button>
+          </div>
+          <div class="settings-card">
+            <h3>Speicherort</h3>
+            <p>Die App läuft über GitHub Pages. Arbeitsdaten bleiben lokal im Browser und sollten regelmäßig per Backup gesichert werden.</p>
+          </div>
         </section>`;
     }
     function setForm(task) {
@@ -1294,7 +1381,15 @@
     async function enableNotifications() {
       if (!("Notification" in window)) return alert("Dieser Browser unterstützt keine Benachrichtigungen.");
       const permission = await Notification.requestPermission();
-      document.getElementById("notify").textContent = permission === "granted" ? "Benachrichtigungen aktiv" : "Benachrichtigungen aktivieren";
+      updateNotificationButton(permission);
+    }
+    function updateNotificationButton(permission) {
+      const button = document.getElementById("notify");
+      const active = permission === "granted";
+      const label = active ? "Benachrichtigungen aktiv" : "Benachrichtigungen aktivieren";
+      button.classList.toggle("active", active);
+      button.title = label;
+      button.setAttribute("aria-label", label);
     }
     function warnCritical() {
       if (!("Notification" in window) || Notification.permission !== "granted") return;
@@ -1316,10 +1411,6 @@
     document.getElementById("cancel").addEventListener("click", closeDialog);
     document.getElementById("create").addEventListener("click", createTask);
     document.getElementById("notify").addEventListener("click", enableNotifications);
-    document.getElementById("saveBackup").addEventListener("click", saveBackup);
-    document.getElementById("loadBackup").addEventListener("click", () => document.getElementById("backupFile").click());
-    document.getElementById("importCsv").addEventListener("click", () => document.getElementById("csvFile").click());
-    document.getElementById("closeDay").addEventListener("click", archiveWorkday);
     document.getElementById("backupFile").addEventListener("change", event => {
       const file = event.target.files && event.target.files[0];
       if (file) loadBackupFile(file);
@@ -1345,11 +1436,17 @@
     });
     document.getElementById("view").addEventListener("click", event => {
       const button = event.target.closest("button[data-action]");
-      if (!button) return;
-      if (button.dataset.action === "timer") startTimer(button.dataset.id, button.dataset.kind);
-      if (button.dataset.action === "stop") stopTimer(button.dataset.id);
-      if (button.dataset.action === "folder") downloadFolder(button.dataset.id);
-      if (button.dataset.action === "edit") openDialog(button.dataset.id);
+      if (button) {
+        if (button.dataset.action === "timer") startTimer(button.dataset.id, button.dataset.kind);
+        if (button.dataset.action === "stop") stopTimer(button.dataset.id);
+        if (button.dataset.action === "folder") downloadFolder(button.dataset.id);
+        if (button.dataset.action === "edit") openDialog(button.dataset.id);
+        return;
+      }
+      if (event.target.id === "saveBackup") saveBackup();
+      if (event.target.id === "loadBackup") document.getElementById("backupFile").click();
+      if (event.target.id === "importCsv") document.getElementById("csvFile").click();
+      if (event.target.id === "closeDay") archiveWorkday();
     });
     document.getElementById("view").addEventListener("input", event => {
       if (event.target.id !== "analysisSearch") return;
@@ -1383,6 +1480,7 @@
     }, 1000);
 
     renderSlots();
+    updateNotificationButton("Notification" in window ? Notification.permission : "default");
     save();
     render();
   </script>
