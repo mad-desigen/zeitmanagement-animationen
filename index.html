@@ -158,6 +158,116 @@
       background: var(--yellow);
       color: #151515;
     }
+    .mono-icon {
+      --icon-size: 16px;
+      position: relative;
+      display: inline-block;
+      width: var(--icon-size);
+      height: var(--icon-size);
+      color: currentColor;
+      flex: 0 0 auto;
+    }
+    .mono-icon.clock,
+    .mono-icon.alarm,
+    .mono-icon.stopwatch {
+      border: 2px solid currentColor;
+      border-radius: 50%;
+    }
+    .mono-icon.clock::before,
+    .mono-icon.alarm::before,
+    .mono-icon.stopwatch::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 3px;
+      width: 2px;
+      height: 5px;
+      background: currentColor;
+      border-radius: 999px;
+      transform: translateX(-50%);
+    }
+    .mono-icon.clock::after,
+    .mono-icon.alarm::after,
+    .mono-icon.stopwatch::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 5px;
+      height: 2px;
+      background: currentColor;
+      border-radius: 999px;
+      transform-origin: left center;
+      transform: rotate(18deg);
+    }
+    .mono-icon.alarm {
+      --icon-size: 18px;
+    }
+    .mono-icon.alarm::before {
+      top: -4px;
+      width: 8px;
+      height: 3px;
+      border-radius: 3px;
+    }
+    .mono-icon.screen {
+      width: 18px;
+      height: 14px;
+      border: 2px solid currentColor;
+      border-radius: 4px;
+    }
+    .mono-icon.screen::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: -5px;
+      width: 9px;
+      height: 2px;
+      border-radius: 999px;
+      background: currentColor;
+      transform: translateX(-50%);
+    }
+    .mono-icon.play {
+      width: 0;
+      height: 0;
+      border-top: 9px solid transparent;
+      border-bottom: 9px solid transparent;
+      border-left: 14px solid currentColor;
+    }
+    .mono-icon.pause {
+      width: 18px;
+      height: 20px;
+      border-left: 6px solid currentColor;
+      border-right: 6px solid currentColor;
+    }
+    .mono-icon.pencil::before {
+      content: "";
+      position: absolute;
+      left: 7px;
+      top: 0;
+      width: 5px;
+      height: 17px;
+      border: 2px solid currentColor;
+      border-radius: 3px;
+      transform: rotate(45deg);
+    }
+    .mono-icon.folder {
+      width: 19px;
+      height: 15px;
+      border: 2px solid currentColor;
+      border-radius: 3px;
+    }
+    .mono-icon.folder::before {
+      content: "";
+      position: absolute;
+      left: 2px;
+      top: -5px;
+      width: 8px;
+      height: 5px;
+      border: 2px solid currentColor;
+      border-bottom: 0;
+      border-radius: 3px 3px 0 0;
+      background: transparent;
+    }
     .switch {
       display: inline-grid;
       grid-template-columns: repeat(5, minmax(105px, 1fr));
@@ -311,6 +421,9 @@
     }
     .deadline-pill {
       flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       border-radius: 999px;
       background: rgba(255,255,255,.08);
       color: #eef2f6;
@@ -387,10 +500,20 @@
     .card-subline {
       display: flex;
       flex-wrap: wrap;
+      align-items: center;
       gap: 7px;
       color: var(--muted);
       font-size: 12px;
       font-weight: 800;
+    }
+    .card-subline span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .card-subline .deadline-pill {
+      margin-left: auto;
+      color: #eef2f6;
     }
     .details-toggle {
       display: grid;
@@ -462,7 +585,7 @@
       background: rgba(255,255,255,.045);
       padding: 9px;
     }
-    .risk span, .timer span {
+    .risk span {
       display: block;
       color: var(--muted);
       font-size: 11px;
@@ -476,17 +599,17 @@
       font-size: 17px;
     }
     .timer {
-      min-height: 54px;
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
       text-align: left;
     }
     .timer.active {
-      border-color: var(--green);
-      background: rgba(69, 212, 131, .16);
-      box-shadow: inset 0 0 0 1px rgba(69, 212, 131, .18);
-    }
-    .wide-button {
-      width: 100%;
-      margin-top: 10px;
+      border-color: var(--yellow);
+      background: rgba(255, 216, 77, .16);
+      box-shadow: inset 0 0 0 1px rgba(255, 216, 77, .25);
     }
     .split-actions {
       display: grid;
@@ -505,7 +628,6 @@
       font-size: 20px;
       line-height: 1;
     }
-    .stop { background: rgba(240, 83, 121, .14); }
     .folder { background: rgba(255,255,255,.06); }
     .note {
       border-left: 3px solid var(--orange);
@@ -1134,7 +1256,6 @@
         <div class="card-main">
           <div class="card-title-row">
             <h3>${escapeHtml(task.title)}</h3>
-            <span class="deadline-pill" title="Deadline" aria-label="Deadline">⏰ ${formatClock(task.productionDeadline)}</span>
           </div>
           <div class="card-focus">
             <div class="time-left">
@@ -1155,9 +1276,10 @@
             </div>
           </div>
           <div class="card-subline">
-            <span title="Sendung" aria-label="Sendung">📺 ${task.sendSlot}</span>
-            <span title="Erfasste Zeit" aria-label="Erfasste Zeit">⏱ ${formatDuration(sumSessions(task))}</span>
-            ${preparationActive ? '<span title="Vorbereitung läuft" aria-label="Vorbereitung läuft">◷</span>' : ""}
+            <span title="Sendung" aria-label="Sendung"><span class="mono-icon screen"></span>${task.sendSlot}</span>
+            <span title="Erfasste Zeit" aria-label="Erfasste Zeit"><span class="mono-icon stopwatch"></span>${formatDuration(sumSessions(task))}</span>
+            ${task.activeTimer ? `<span title="${escapeHtml(TIMER_LABELS[task.activeTimer.kind])} läuft" aria-label="${escapeHtml(TIMER_LABELS[task.activeTimer.kind])} läuft"><span class="mono-icon ${task.activeTimer.kind === "preparation" ? "clock" : "play"}"></span></span>` : ""}
+            <span class="deadline-pill" title="Deadline" aria-label="Deadline"><span class="mono-icon alarm"></span>${formatClock(task.productionDeadline)}</span>
           </div>
         </div>
         <details data-details-id="${task.id}" ${openDetailIds.has(task.id) ? "open" : ""}>
@@ -1172,14 +1294,19 @@
               <div><span>Vorbereitung</span><strong>${formatDuration(sumSessions(task, "preparation"))}</strong></div>
               <div><span>in Arbeit</span><strong>${formatDuration(sumSessions(task, "animation"))}</strong></div>
             </div>
-            <button class="timer ${preparationActive ? "active" : ""}" data-action="timer" data-kind="preparation" data-id="${task.id}" title="${preparationActive ? "Vorbereitung stoppen" : "Vorbereitung starten"}" aria-label="${preparationActive ? "Vorbereitung stoppen" : "Vorbereitung starten"}">
-              <span>◷</span>
-              <strong>${formatDuration(sumSessions(task, "preparation"))}</strong>
-            </button>
-            ${task.activeTimer ? `<button class="wide-button stop card-icon-button" data-action="stop" data-id="${task.id}" title="Laufenden Timer stoppen" aria-label="Laufenden Timer stoppen">■</button>` : ""}
+            <div class="timer-row">
+              <button class="timer ${preparationActive ? "active" : ""}" data-action="timer" data-kind="preparation" data-id="${task.id}" title="${preparationActive ? "Vorbereitung stoppen" : "Vorbereitung starten"}" aria-label="${preparationActive ? "Vorbereitung stoppen" : "Vorbereitung starten"}">
+                <span class="mono-icon ${preparationActive ? "pause" : "clock"}"></span>
+                <strong>${formatDuration(sumSessions(task, "preparation"))}</strong>
+              </button>
+              <button class="timer ${animationActive ? "active" : ""}" data-action="timer" data-kind="animation" data-id="${task.id}" title="${animationActive ? "in Arbeit stoppen" : "in Arbeit starten"}" aria-label="${animationActive ? "in Arbeit stoppen" : "in Arbeit starten"}">
+                <span class="mono-icon ${animationActive ? "pause" : "play"}"></span>
+                <strong>${formatDuration(sumSessions(task, "animation"))}</strong>
+              </button>
+            </div>
             <div class="split-actions">
-              <button class="secondary card-icon-button" data-action="edit" data-id="${task.id}" title="Bearbeiten" aria-label="Bearbeiten">✎</button>
-              <button class="folder card-icon-button" data-action="folder" data-id="${task.id}" title="Projektordner herunterladen" aria-label="Projektordner herunterladen">▣</button>
+              <button class="secondary card-icon-button" data-action="edit" data-id="${task.id}" title="Bearbeiten" aria-label="Bearbeiten"><span class="mono-icon pencil"></span></button>
+              <button class="folder card-icon-button" data-action="folder" data-id="${task.id}" title="Projektordner herunterladen" aria-label="Projektordner herunterladen"><span class="mono-icon folder"></span></button>
             </div>
             ${task.description ? `<p class="note">${escapeHtml(task.description)}</p>` : ""}
           </div>
