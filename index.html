@@ -94,6 +94,12 @@
       letter-spacing: 0.05em;
       text-transform: uppercase;
     }
+    .brand-logo {
+      display: block;
+      width: min(360px, 42vw);
+      height: auto;
+      max-height: 82px;
+    }
 	    .color-palette {
 	      display: flex;
 	      flex-wrap: wrap;
@@ -1431,6 +1437,10 @@
         font-size: 23px;
         letter-spacing: .035em;
       }
+      .brand-logo {
+        width: min(230px, 64vw);
+        max-height: 54px;
+      }
       .header-row {
         gap: 12px;
       }
@@ -1858,7 +1868,7 @@
   <header>
     <div class="header-row">
       <div>
-        <h1>Zeitmanagement</h1>
+        <img class="brand-logo" src="Logo.svg" alt="Zeitmanagement">
       </div>
       <div class="metrics" id="metrics"></div>
     </div>
