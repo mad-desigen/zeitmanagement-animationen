@@ -364,17 +364,25 @@
 	    .card {
 	      position: relative;
 	      min-width: 0;
-	      border: 1px solid rgba(var(--task-tint, var(--board-tint)), .72);
-	      border-left: 5px solid var(--task-accent, var(--green));
+	      border: 1px solid rgba(255,255,255,.09);
+	      border-left: 5px solid var(--green);
 	      border-radius: var(--radius);
 	      background:
-	        linear-gradient(145deg, rgba(var(--task-tint, var(--board-tint)), .84), rgba(var(--task-tint, var(--board-tint)), .48)),
-	        linear-gradient(180deg, #20252d, #171b20);
-	      color: #f8fafc;
+	        linear-gradient(180deg, rgba(var(--board-tint), .1), transparent 92px),
+	        linear-gradient(180deg, #252a32, #1c2026);
+	      color: var(--text);
 	      cursor: grab;
 	      padding: 14px;
 	      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
-	      transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+	      transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;
+	    }
+	    .card.color-highlight {
+	      border-color: rgba(var(--task-tint), .72);
+	      border-left-color: var(--task-accent, var(--green));
+	      background:
+	        linear-gradient(145deg, rgba(var(--task-tint), .84), rgba(var(--task-tint), .48)),
+	        linear-gradient(180deg, #20252d, #171b20);
+	      color: #f8fafc;
 	    }
     .card.ok {
       border-left-color: var(--task-accent, var(--green));
@@ -387,9 +395,11 @@
       }
     }
 	    .card.tight {
+	      border-left-color: var(--orange);
 	      box-shadow: 0 0 0 2px rgba(233, 185, 73, .24), 0 18px 42px rgba(0, 0, 0, 0.34);
 	    }
 	    .card.critical, .card.late {
+	      border-left-color: var(--pink);
 	      box-shadow: 0 0 0 2px rgba(240, 79, 120, .3), 0 18px 42px rgba(0, 0, 0, 0.34);
 	    }
 	    .card.done {
@@ -1939,6 +1949,10 @@
       plum: { label: "Pflaume", accent: "#80677f", rgb: "128, 103, 127" },
       rust: { label: "Terrakotta", accent: "#8b6658", rgb: "139, 102, 88" },
     };
+    const TASK_COLORS = {
+      neutral: { label: "Neutral", accent: "#45d483", swatch: "#2f3640", rgb: "37, 42, 50" },
+      ...BOARD_COLORS,
+    };
 	    const COLUMNS = [
 	      ["planning", "in Planung"],
 	      ["animation", "in Arbeit"],
@@ -2122,6 +2136,12 @@
     function normalizeColorKey(value, fallback = "teal") {
       return BOARD_COLORS[value] ? value : fallback;
     }
+    function normalizeTaskColorKey(value, fallback = "neutral") {
+      return TASK_COLORS[value] ? value : fallback;
+    }
+    function taskColorIsHighlighted(task) {
+      return Boolean(task.boardColorManual && normalizeTaskColorKey(task.boardColor) !== "neutral");
+    }
 	    function formatBytes(value) {
 	      const size = Number(value || 0);
 	      if (size >= 1024 * 1024) return (size / 1024 / 1024).toFixed(1).replace(".0", "") + " MB";
@@ -2165,11 +2185,17 @@
       return ["planning", "animation", "approval", "delivered"].includes(status) ? status : "planning";
     }
     function normalizeTask(task) {
+      const storedTaskColor = normalizeTaskColorKey(task.boardColor || task.color, "neutral");
+      const boardColorManual = Boolean(
+        task.boardColorManual ||
+        (task.boardColor && task.boardColor !== "teal" && task.boardColor !== "neutral")
+      );
       return {
         id: task.id || uid(),
         title: task.title || "Animation",
 	        projectType: task.projectType || "ANIM",
-        boardColor: normalizeColorKey(task.boardColor || task.color, "teal"),
+        boardColor: boardColorManual ? storedTaskColor : "neutral",
+        boardColorManual,
 	        abbreviation: "PMY",
         source: task.source || "Formular",
         requester: task.requester || "",
@@ -2513,12 +2539,13 @@
 	    function renderCard(task) {
 	      const remaining = Math.floor((new Date(task.productionDeadline).getTime() - now.getTime()) / 1000);
 	      const state = risk(task);
-      const taskColor = BOARD_COLORS[task.boardColor] || BOARD_COLORS.teal;
+      const taskColor = TASK_COLORS[task.boardColor] || TASK_COLORS.neutral;
+      const colorHighlightClass = taskColorIsHighlighted(task) ? "color-highlight" : "";
 	      const primaryTimerKind = task.workStatus === "planning" ? "preparation" : "animation";
 	      const primaryTimerActive = task.activeTimer && task.activeTimer.kind === primaryTimerKind;
 	      const animationActive = task.activeTimer && task.activeTimer.kind === "animation";
 	      const preparationActive = task.activeTimer && task.activeTimer.kind === "preparation";
-	      return `<article class="card ${state}" draggable="true" data-id="${task.id}" style="--task-accent:${taskColor.accent};--task-tint:${taskColor.rgb}">
+	      return `<article class="card ${state} ${colorHighlightClass}" draggable="true" data-id="${task.id}" style="--task-accent:${taskColor.accent};--task-tint:${taskColor.rgb}">
         <div class="card-main">
 	          <div class="card-title-row">
 	            <h3>${escapeHtml(task.title)}</h3>
@@ -2842,12 +2869,12 @@
 		      renderStagedFiles();
 		      renderCoverPreview();
 		    }
-    function renderTaskColorPalette(selected = "teal") {
+    function renderTaskColorPalette(selected = "neutral") {
       const box = document.getElementById("taskColorPalette");
       if (!box) return;
-      const active = normalizeColorKey(selected, "teal");
-      box.innerHTML = Object.entries(BOARD_COLORS).map(([key, color]) =>
-        `<button type="button" class="${active === key ? "active" : ""}" data-task-color="${key}" style="--swatch:${color.accent}" title="${color.label}" aria-label="${color.label}"></button>`
+      const active = normalizeTaskColorKey(selected, "neutral");
+      box.innerHTML = Object.entries(TASK_COLORS).map(([key, color]) =>
+        `<button type="button" class="${active === key ? "active" : ""}" data-task-color="${key}" style="--swatch:${color.swatch || color.accent}" title="${color.label}" aria-label="${color.label}"></button>`
       ).join("");
     }
 	    function drawCropPreview() {
@@ -2925,7 +2952,8 @@
 	      document.getElementById("title").value = task.title || "Animation";
       document.getElementById("broadcast").value = task.broadcast || activeBroadcast;
 	      document.getElementById("projectType").value = task.projectType || "ANIM";
-      document.getElementById("projectType").dataset.boardColor = normalizeColorKey(task.boardColor, "teal");
+      document.getElementById("projectType").dataset.boardColor = normalizeTaskColorKey(task.boardColor, "neutral");
+      document.getElementById("projectType").dataset.boardColorManual = taskColorIsHighlighted(task) ? "true" : "false";
 	      document.getElementById("abbreviation").value = "PMY";
       document.getElementById("requester").value = task.requester || "";
       document.getElementById("source").value = task.source || "Formular";
@@ -2944,7 +2972,8 @@
         title,
         broadcast: document.getElementById("broadcast").value,
 	        projectType: document.getElementById("projectType").value,
-        boardColor: normalizeColorKey(document.getElementById("projectType").dataset.boardColor, "teal"),
+        boardColor: normalizeTaskColorKey(document.getElementById("projectType").dataset.boardColor, "neutral"),
+        boardColorManual: document.getElementById("projectType").dataset.boardColorManual === "true",
 	        abbreviation: "PMY",
         source: document.getElementById("source").value,
         requester: document.getElementById("requester").value.trim(),
@@ -3264,7 +3293,8 @@
               title,
 	              broadcast: broadcastKey,
 	              projectType: pickField(row, headers, ["Typ", "Type"]) || "ANIM",
-              boardColor: "teal",
+              boardColor: "neutral",
+              boardColorManual: false,
 	              abbreviation: "PMY",
               source: "Teams",
               requester: pickField(row, headers, ["Auftrag von", "Auftraggeber", "Assigned to", "Zugewiesen an"]),
@@ -3423,8 +3453,10 @@
 	      const button = event.target.closest("button[data-slot]");
       const taskColorButton = event.target.closest("button[data-task-color]");
       if (taskColorButton) {
-        document.getElementById("projectType").dataset.boardColor = taskColorButton.dataset.taskColor;
-        renderTaskColorPalette(taskColorButton.dataset.taskColor);
+        const taskColor = normalizeTaskColorKey(taskColorButton.dataset.taskColor, "neutral");
+        document.getElementById("projectType").dataset.boardColor = taskColor;
+        document.getElementById("projectType").dataset.boardColorManual = taskColor !== "neutral" ? "true" : "false";
+        renderTaskColorPalette(taskColor);
         return;
       }
 	      if (!button) return;
