@@ -119,3 +119,25 @@ test("uses one shared board and keeps board styling in settings", async () => {
   assert.doesNotMatch(standaloneApp, /id="deleteBoard"/);
   assert.doesNotMatch(standaloneApp, /function deleteActiveBoard\(\)/);
 });
+
+test("supports server-backed file uploads and cropped title images", async () => {
+  const [standaloneApp, api] = await Promise.all([
+    readFile(new URL("../index.html", import.meta.url), "utf8"),
+    readFile(new URL("../api.php", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(standaloneApp, /id="attachmentInput" type="file" multiple/);
+  assert.match(standaloneApp, /id="coverInput" type="file" accept="image\/\*"/);
+  assert.match(standaloneApp, /<canvas class="crop-canvas" id="cropCanvas" width="1470" height="630"><\/canvas>/);
+  assert.match(standaloneApp, /aspect-ratio:\s*21 \/ 9/);
+  assert.match(standaloneApp, /attachments:\s*normalizeFileList\(task\.attachments\)/);
+  assert.match(standaloneApp, /coverImage:\s*normalizeFileMeta\(task\.coverImage\)/);
+  assert.match(standaloneApp, /action=upload/);
+  assert.match(standaloneApp, /data-action="attach"/);
+  assert.match(api, /CREATE TABLE IF NOT EXISTS uploaded_files/);
+  assert.match(api, /function handleUpload\(\): never/);
+  assert.match(api, /function streamFile\(\): never/);
+  assert.match(api, /move_uploaded_file/);
+  assert.match(api, /\$action === 'upload'/);
+  assert.match(api, /\$action === 'file'/);
+});

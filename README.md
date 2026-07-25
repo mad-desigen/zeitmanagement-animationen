@@ -27,6 +27,8 @@ im Terminal, normalerweise `http://localhost:3000/`.
 - Die Analyse-Ansicht hat Suche und zeigt Erfahrungswerte aus abgeschlossenen Aufgaben.
 - Neue Aufgaben werden über den `+ Aufgabe hinzufügen` Dialog angelegt.
 - Bestehende Aufgaben können über `Bearbeiten` geändert werden.
+- Dateien aller Typen können an Aufgaben gehängt werden.
+- Pro Aufgabe kann ein Titelbild gewählt und vor dem Speichern auf 21:9 zugeschnitten werden.
 - CSV-Dateien aus Planner/Excel können importiert werden.
 - Backups können als Datei gespeichert und wieder geladen werden.
 - Projekttyp `ANIM`, `INFO` oder `KARTE` wird für den Ordnernamen erfasst; das Kürzel ist fest `PMY`.
@@ -48,8 +50,9 @@ im Terminal, normalerweise `http://localhost:3000/`.
 
 Die App kann als statische `index.html` laufen und speichert lokal als Fallback
 im Browser. Für globale Synchronisation nutzt sie `api.php` und speichert die
-Aufgaben zentral in MySQL. Die Seite ist öffentlich nutzbar; das API ist daher
-ebenfalls öffentlich erreichbar.
+Aufgaben zentral in MySQL. Upload-Dateien werden auf dem Server abgelegt; in der
+Aufgabe werden Datei-Metadaten und Titelbild-Verweise gespeichert. Die Seite ist
+öffentlich nutzbar; das API ist daher ebenfalls öffentlich erreichbar.
 
 ## Prüfen
 
