@@ -909,6 +909,7 @@
     let now = new Date();
     let warned = new Set();
     let openDetailIds = new Set();
+    let draggingTaskId = null;
     let lastArchiveDate = toLocalDate(new Date());
     let tasks = archiveCompletedTasks(loadTasks(), now);
 
@@ -1419,9 +1420,20 @@
     function moveTask(id, status) {
       tasks = tasks.map(task => {
         if (task.id !== id) return task;
-        let next = task;
-        if (status !== "animation") next = closeTimer(next);
-        return { ...next, workStatus: status, completedAt: status === "delivered" ? new Date().toISOString() : null };
+        if (status === "animation") {
+          if (task.activeTimer && task.activeTimer.kind === "animation") {
+            return { ...task, workStatus: "animation", completedAt: null };
+          }
+          const closed = closeTimer(task);
+          return {
+            ...closed,
+            workStatus: "animation",
+            completedAt: null,
+            activeTimer: { kind: "animation", startedAt: new Date().toISOString() },
+          };
+        }
+        const closed = closeTimer(task);
+        return { ...closed, workStatus: status, completedAt: status === "delivered" ? new Date().toISOString() : null };
       });
       save();
       render();
@@ -1664,7 +1676,14 @@
     }, true);
     document.getElementById("view").addEventListener("dragstart", event => {
       const card = event.target.closest(".card");
-      if (card) event.dataTransfer.setData("text/task-id", card.dataset.id);
+      if (card) {
+        draggingTaskId = card.dataset.id;
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/task-id", card.dataset.id);
+      }
+    });
+    document.getElementById("view").addEventListener("dragend", () => {
+      draggingTaskId = null;
     });
     document.getElementById("view").addEventListener("dragover", event => {
       if (event.target.closest(".column")) event.preventDefault();
@@ -1673,7 +1692,8 @@
       const column = event.target.closest(".column");
       if (!column) return;
       event.preventDefault();
-      const id = event.dataTransfer.getData("text/task-id");
+      const id = event.dataTransfer.getData("text/task-id") || draggingTaskId;
+      draggingTaskId = null;
       if (id) moveTask(id, column.dataset.column);
     });
     setInterval(() => {
@@ -1685,6 +1705,7 @@
         save();
       }
       warnCritical();
+      if (draggingTaskId) return;
       render();
     }, 1000);
 
