@@ -87,31 +87,6 @@
       letter-spacing: 0.05em;
       text-transform: uppercase;
     }
-    .broadcast-toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 12px;
-    }
-    .broadcast-switch {
-      display: inline-flex;
-      overflow: hidden;
-      border: 1px solid var(--line-soft);
-      border-radius: var(--radius);
-      background: rgba(255,255,255,.04);
-    }
-    .broadcast-switch button {
-      min-width: 110px;
-      border: 0;
-      border-right: 1px solid var(--line-soft);
-      border-radius: 0;
-      background: transparent;
-    }
-    .broadcast-switch button:last-child { border-right: 0; }
-    .broadcast-switch button.active {
-      background: rgba(var(--board-tint), .28);
-      box-shadow: inset 0 -2px 0 var(--board-accent);
-    }
     .color-palette {
       display: inline-flex;
       gap: 7px;
@@ -129,18 +104,6 @@
     .color-palette button.active {
       border-color: #f4f6f8;
       box-shadow: 0 0 0 2px rgba(255,255,255,.13);
-    }
-    .delete-board-button {
-      min-height: 32px;
-      border-color: rgba(240, 83, 121, .28);
-      background: rgba(240, 83, 121, .08);
-      color: #d8a5b1;
-      padding: 5px 9px;
-    }
-    .delete-board-button:hover, .delete-board-button:focus-visible {
-      border-color: rgba(240, 83, 121, .6);
-      background: rgba(240, 83, 121, .16);
-      color: white;
     }
     .metrics {
       display: grid;
@@ -907,7 +870,6 @@
     .suggestion.visible { display: block; }
     @media (max-width: 900px) {
       .header-row { align-items: stretch; flex-direction: column; }
-      .broadcast-toolbar { align-items: flex-start; flex-direction: column; }
       .metrics, .learning, .analysis-summary, .grid-2, .settings-grid { grid-template-columns: 1fr; }
       .switch { width: 100%; }
     }
@@ -918,11 +880,6 @@
     <div class="header-row">
       <div>
         <h1>Zeitmanagement</h1>
-        <div class="broadcast-toolbar">
-          <div class="broadcast-switch" id="broadcastSwitch" aria-label="Sendung wechseln"></div>
-          <div class="color-palette" id="colorPalette" aria-label="Board-Farbe wählen"></div>
-          <button class="delete-board-button" id="deleteBoard" type="button">Board löschen</button>
-        </div>
       </div>
       <div class="metrics" id="metrics"></div>
     </div>
@@ -1079,11 +1036,12 @@
           colors: {
             aktuell: BOARD_COLORS[stored.colors && stored.colors.aktuell] ? stored.colors.aktuell : "blue",
             mima: BOARD_COLORS[stored.colors && stored.colors.mima] ? stored.colors.mima : "teal",
+            board: BOARD_COLORS[stored.colors && stored.colors.board] ? stored.colors.board : "teal",
           },
           updatedAt: stored.updatedAt || new Date(0).toISOString(),
         };
       } catch {
-        return { activeBroadcast: "aktuell", enabledBroadcasts: Object.keys(BROADCASTS), colors: { aktuell: "blue", mima: "teal" }, updatedAt: new Date(0).toISOString() };
+        return { activeBroadcast: "aktuell", enabledBroadcasts: Object.keys(BROADCASTS), colors: { aktuell: "blue", mima: "teal", board: "teal" }, updatedAt: new Date(0).toISOString() };
       }
     }
     function boardState() {
@@ -1100,6 +1058,7 @@
         colors: {
           aktuell: BOARD_COLORS[colors.aktuell] ? colors.aktuell : "blue",
           mima: BOARD_COLORS[colors.mima] ? colors.mima : "teal",
+          board: BOARD_COLORS[colors.board] ? colors.board : "teal",
         },
         updatedAt: state.updatedAt || new Date(0).toISOString(),
       };
@@ -1124,52 +1083,16 @@
       localStorage.setItem(BOARD_PREFERENCES_KEY, JSON.stringify(boardState()));
     }
     function applyBoardColor() {
-      const colorKey = boardColors[activeBroadcast] || "slate";
+      const colorKey = boardColors.board || boardColors[activeBroadcast] || "slate";
       const color = BOARD_COLORS[colorKey];
       document.documentElement.style.setProperty("--board-accent", color.accent);
       document.documentElement.style.setProperty("--board-tint", color.rgb);
     }
     function renderBoardControls() {
-      const enabledButtons = enabledBroadcasts.map(key =>
-        `<button type="button" class="${activeBroadcast === key ? "active" : ""}" data-broadcast="${key}">${BROADCASTS[key].label}</button>`
-      );
-      const addButtons = Object.keys(BROADCASTS).filter(key => !enabledBroadcasts.includes(key)).map(key =>
-        `<button type="button" data-add-broadcast="${key}">+ ${BROADCASTS[key].label}</button>`
-      );
-      document.getElementById("broadcastSwitch").innerHTML = enabledButtons.concat(addButtons).join("");
-      document.getElementById("colorPalette").innerHTML = Object.entries(BOARD_COLORS).map(([key, color]) =>
-        `<button type="button" class="${boardColors[activeBroadcast] === key ? "active" : ""}" data-board-color="${key}" style="--swatch:${color.accent}" title="${color.label}" aria-label="${color.label}"></button>`
-      ).join("");
-      const deleteButton = document.getElementById("deleteBoard");
-      deleteButton.disabled = enabledBroadcasts.length <= 1;
-      deleteButton.title = enabledBroadcasts.length <= 1 ? "Mindestens ein Board muss bestehen bleiben." : `${selectedBroadcast().label}-Board löschen`;
       applyBoardColor();
     }
-    function deleteActiveBoard() {
-      if (enabledBroadcasts.length <= 1) {
-        alert("Mindestens ein Board muss bestehen bleiben.");
-        return;
-      }
-      const boardLabel = selectedBroadcast().label;
-      const boardTasks = tasks.filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt);
-      const detail = boardTasks.length ? ` Dabei werden ${boardTasks.length} Aufgaben gelöscht.` : "";
-      if (!confirm(`${boardLabel}-Board wirklich löschen?${detail}`)) return;
-      const deletedAt = new Date().toISOString();
-      tasks = tasks.map(task => taskIsInActiveBroadcast(task) && !task.deletedAt
-        ? { ...task, activeTimer: null, deletedAt, updatedAt: deletedAt }
-        : task
-      );
-      enabledBroadcasts = enabledBroadcasts.filter(key => key !== activeBroadcast);
-      activeBroadcast = enabledBroadcasts[0];
-      saveBoardPreferences();
-      save();
-      render();
-    }
-    function selectedBroadcast() {
-      return BROADCASTS[activeBroadcast];
-    }
     function taskIsInActiveBroadcast(task) {
-      return (task.broadcast || "aktuell") === activeBroadcast;
+      return true;
     }
     function sendSlotMinutes(value) {
       const match = String(value || "").match(/(\d{1,2}):(\d{2})/);
@@ -1599,7 +1522,8 @@
       </article>`;
     }
     function renderTimeline() {
-      const { timelineStart, timelineEnd } = selectedBroadcast();
+      const timelineStart = Math.min(...Object.values(BROADCASTS).map(broadcast => broadcast.timelineStart));
+      const timelineEnd = Math.max(...Object.values(BROADCASTS).map(broadcast => broadcast.timelineEnd));
       const hours = Array.from({ length: timelineEnd - timelineStart + 1 }, (_, index) => timelineStart + index);
       const totalMinutes = (timelineEnd - timelineStart) * 60;
       const nowPosition = ((now.getHours() * 60 + now.getMinutes() - timelineStart * 60) / totalMinutes) * 100;
@@ -1625,7 +1549,7 @@
         </div>`;
       }).join("");
       document.getElementById("view").innerHTML = `<div class="timeline-panel">
-        <div class="panel-head"><h2>Timeline ${selectedBroadcast().label}</h2><span>Aktive Animationen</span></div>
+        <div class="panel-head"><h2>Timeline</h2><span>Aktive Animationen</span></div>
         <div class="time-grid">
           <div class="time-label"></div>
           <div class="scale" style="grid-template-columns:repeat(${hours.length}, minmax(60px, 1fr))">${hours.map(hour => `<span>${hour}:00</span>`).join("")}</div>
@@ -1710,6 +1634,15 @@
             <button class="secondary" id="closeDay">Arbeitstag abschließen</button>
           </div>
           <div class="settings-card">
+            <h3>Board</h3>
+            <p>Hier wird die Farbe des gemeinsamen Kanban-Boards eingestellt.</p>
+            <div class="color-palette" id="colorPalette" aria-label="Board-Farbe wählen">
+              ${Object.entries(BOARD_COLORS).map(([key, color]) =>
+                `<button type="button" class="${(boardColors.board || "teal") === key ? "active" : ""}" data-board-color="${key}" style="--swatch:${color.accent}" title="${color.label}" aria-label="${color.label}"></button>`
+              ).join("")}
+            </div>
+          </div>
+          <div class="settings-card">
             <h3>Speicherort</h3>
             <p>Der Server-Sync ist dauerhaft aktiv. Aufgaben und Zeiten werden zentral in der Datenbank gespeichert.</p>
             <div class="settings-actions">
@@ -1768,7 +1701,8 @@
     }
     function openDialog(id) {
       editingId = typeof id === "string" ? id : null;
-      const broadcast = selectedBroadcast();
+      const broadcastKey = editingId ? (tasks.find(item => item.id === editingId)?.broadcast || "aktuell") : "aktuell";
+      const broadcast = BROADCASTS[broadcastKey] || BROADCASTS.aktuell;
       const deadline = new Date();
       const [deadlineHour, deadlineMinute] = broadcast.defaultDeadline.split(":").map(Number);
       deadline.setHours(deadlineHour, deadlineMinute, 0, 0);
@@ -1777,7 +1711,7 @@
       const task = editingId ? tasks.find(item => item.id === editingId) : null;
       setForm(task || {
         title: "Animation",
-        broadcast: activeBroadcast,
+        broadcast: broadcastKey,
         projectType: "ANIM",
         abbreviation: "",
         source: "Formular",
@@ -1956,8 +1890,9 @@
           const rows = parseCsv(String(reader.result || ""));
           if (rows.length < 2) throw new Error("Die Datei enthält keine Aufgaben.");
           const headers = rows[0];
-          const broadcast = selectedBroadcast();
           const imported = rows.slice(1).map(row => {
+            const broadcastKey = normalizeText(pickField(row, headers, ["Board", "Sendungstyp", "Format"])).includes("mima") ? "mima" : "aktuell";
+            const broadcast = BROADCASTS[broadcastKey];
             const title = pickField(row, headers, ["Aufgabe", "Titel", "Title", "Task", "Name"]) || "Importierte Aufgabe";
             const date = parseDateInput(pickField(row, headers, ["Deadline-Datum", "Fälligkeitsdatum", "Due date", "Due", "Datum"]));
             const time = parseTimeInput(pickField(row, headers, ["Deadline-Zeit", "Uhrzeit", "Time", "Deadline"]), broadcast.defaultDeadline);
@@ -1967,7 +1902,7 @@
             return normalizeTask({
               id: uid(),
               title,
-              broadcast: activeBroadcast,
+              broadcast: broadcastKey,
               projectType: pickField(row, headers, ["Typ", "Type"]) || "ANIM",
               abbreviation: pickField(row, headers, ["Kürzel", "Kuerzel", "Code"]).toUpperCase(),
               source: "Teams",
@@ -2038,7 +1973,6 @@
     document.getElementById("cancel").addEventListener("click", closeDialog);
     document.getElementById("create").addEventListener("click", createTask);
     document.getElementById("notify").addEventListener("click", enableNotifications);
-    document.getElementById("deleteBoard").addEventListener("click", deleteActiveBoard);
     document.getElementById("backupFile").addEventListener("change", event => {
       const file = event.target.files && event.target.files[0];
       if (file) loadBackupFile(file);
@@ -2056,29 +1990,6 @@
       document.getElementById("deadlineTime").value = broadcast.defaultDeadline;
       renderSlots();
     });
-    document.getElementById("broadcastSwitch").addEventListener("click", event => {
-      const addButton = event.target.closest("button[data-add-broadcast]");
-      if (addButton) {
-        enabledBroadcasts.push(addButton.dataset.addBroadcast);
-        activeBroadcast = addButton.dataset.addBroadcast;
-        saveBoardPreferences();
-        render();
-        return;
-      }
-      const button = event.target.closest("button[data-broadcast]");
-      if (!button) return;
-      activeBroadcast = button.dataset.broadcast;
-      analysisQuery = "";
-      saveBoardPreferences();
-      render();
-    });
-    document.getElementById("colorPalette").addEventListener("click", event => {
-      const button = event.target.closest("button[data-board-color]");
-      if (!button) return;
-      boardColors[activeBroadcast] = button.dataset.boardColor;
-      saveBoardPreferences();
-      renderBoardControls();
-    });
     document.querySelector(".switch").addEventListener("click", event => {
       const button = event.target.closest("button[data-view]");
       if (!button) return;
@@ -2092,9 +2003,17 @@
       selectedSlot = button.dataset.slot;
       renderSlots();
     });
-    document.getElementById("view").addEventListener("click", event => {
-      const button = event.target.closest("button[data-action]");
-      if (button) {
+	    document.getElementById("view").addEventListener("click", event => {
+	      const colorButton = event.target.closest("button[data-board-color]");
+	      if (colorButton) {
+	        boardColors.board = colorButton.dataset.boardColor;
+	        saveBoardPreferences();
+	        save();
+	        render();
+	        return;
+	      }
+	      const button = event.target.closest("button[data-action]");
+	      if (button) {
         if (button.dataset.action === "timer") startTimer(button.dataset.id, button.dataset.kind);
         if (button.dataset.action === "stop") stopTimer(button.dataset.id);
         if (button.dataset.action === "folder") downloadFolder(button.dataset.id);

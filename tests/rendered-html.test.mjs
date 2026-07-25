@@ -100,16 +100,19 @@ test("keeps deletions durable during server synchronization", async () => {
   assert.doesNotMatch(standaloneApp, /tasks = tasks\.filter\(item => item\.id !== id\)/);
 });
 
-test("supports separate broadcast boards and deleting a complete board", async () => {
+test("uses one shared board and keeps board styling in settings", async () => {
   const standaloneApp = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
   assert.match(standaloneApp, /Aktuell/);
   assert.match(standaloneApp, /MiMa/);
   assert.match(standaloneApp, /12:00–13:00/);
   assert.match(standaloneApp, /13:05–14:00/);
-  assert.match(standaloneApp, /function deleteActiveBoard\(\)/);
-  assert.match(standaloneApp, /enabledBroadcasts = enabledBroadcasts\.filter/);
-  assert.match(standaloneApp, /Board wirklich löschen/);
+  assert.match(standaloneApp, /function taskIsInActiveBroadcast\(task\) \{\s*return true;\s*\}/);
+  assert.match(standaloneApp, /<h2>Timeline<\/h2>/);
+  assert.match(standaloneApp, /data-board-color/);
   assert.match(standaloneApp, /BOARD_COLORS/);
   assert.match(standaloneApp, /BOARD_PREFERENCES_KEY/);
+  assert.doesNotMatch(standaloneApp, /id="broadcastSwitch"/);
+  assert.doesNotMatch(standaloneApp, /id="deleteBoard"/);
+  assert.doesNotMatch(standaloneApp, /function deleteActiveBoard\(\)/);
 });
