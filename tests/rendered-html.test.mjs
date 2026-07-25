@@ -53,7 +53,7 @@ test("keeps durable local storage and removes starter references", async () => {
   ]);
 
   assert.match(page, /localStorage\.setItem\(STORAGE_KEY/);
-  assert.doesNotMatch(page + layout + packageJson, /MDR Aktuell|mdr-aktuell|Produktions-Timeline/);
+  assert.doesNotMatch(page + layout + packageJson, /MDR Aktuell|mdr-aktuell|Produktions-Timeline|produktions-timeline/);
   assert.match(page, /JSZip/);
   assert.match(page, /KanbanBoard/);
   assert.match(page, /closeActiveTimer/);
