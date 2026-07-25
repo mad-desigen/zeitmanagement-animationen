@@ -89,3 +89,27 @@ test("keeps durable local storage and removes starter references", async () => {
     /_sites-preview|react-loading-skeleton|codex-preview|JSON exportieren|JSON importieren/,
   );
 });
+
+test("keeps deletions durable during server synchronization", async () => {
+  const standaloneApp = await readFile(new URL("../index.html", import.meta.url), "utf8");
+
+  assert.match(standaloneApp, /deletedAt:\s*task\.deletedAt\s*\|\|\s*null/);
+  assert.match(standaloneApp, /const dates = \[task\.deletedAt,/);
+  assert.match(standaloneApp, /tasks = tasks\.map\(item => item\.id === id \? \{ \.\.\.item, activeTimer: null, deletedAt, updatedAt: deletedAt \}/);
+  assert.match(standaloneApp, /!task\.deletedAt/);
+  assert.doesNotMatch(standaloneApp, /tasks = tasks\.filter\(item => item\.id !== id\)/);
+});
+
+test("supports separate broadcast boards and deleting a complete board", async () => {
+  const standaloneApp = await readFile(new URL("../index.html", import.meta.url), "utf8");
+
+  assert.match(standaloneApp, /Aktuell/);
+  assert.match(standaloneApp, /MiMa/);
+  assert.match(standaloneApp, /12:00–13:00/);
+  assert.match(standaloneApp, /13:05–14:00/);
+  assert.match(standaloneApp, /function deleteActiveBoard\(\)/);
+  assert.match(standaloneApp, /enabledBroadcasts = enabledBroadcasts\.filter/);
+  assert.match(standaloneApp, /Board wirklich löschen/);
+  assert.match(standaloneApp, /BOARD_COLORS/);
+  assert.match(standaloneApp, /BOARD_PREFERENCES_KEY/);
+});

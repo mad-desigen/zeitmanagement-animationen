@@ -22,6 +22,8 @@
       --yellow: #ffd84d;
       --green: #45d483;
       --orange: #e9b949;
+      --board-accent: #6f8295;
+      --board-tint: 111, 130, 149;
       --shadow: 0 20px 60px rgba(0, 0, 0, .34);
       --radius: 8px;
     }
@@ -32,7 +34,7 @@
       margin: 0;
       min-height: 100vh;
       background:
-        linear-gradient(180deg, rgba(35, 136, 255, .10) 0, transparent 280px),
+        linear-gradient(180deg, rgba(var(--board-tint), .13) 0, transparent 300px),
         var(--bg);
       background-size: auto, auto;
       color: var(--text);
@@ -84,6 +86,61 @@
       font-weight: 850;
       letter-spacing: 0.05em;
       text-transform: uppercase;
+    }
+    .broadcast-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+    .broadcast-switch {
+      display: inline-flex;
+      overflow: hidden;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.04);
+    }
+    .broadcast-switch button {
+      min-width: 110px;
+      border: 0;
+      border-right: 1px solid var(--line-soft);
+      border-radius: 0;
+      background: transparent;
+    }
+    .broadcast-switch button:last-child { border-right: 0; }
+    .broadcast-switch button.active {
+      background: rgba(var(--board-tint), .28);
+      box-shadow: inset 0 -2px 0 var(--board-accent);
+    }
+    .color-palette {
+      display: inline-flex;
+      gap: 7px;
+      align-items: center;
+    }
+    .color-palette button {
+      width: 28px;
+      min-width: 28px;
+      min-height: 28px;
+      border: 2px solid transparent;
+      border-radius: 999px;
+      background: var(--swatch);
+      padding: 0;
+    }
+    .color-palette button.active {
+      border-color: #f4f6f8;
+      box-shadow: 0 0 0 2px rgba(255,255,255,.13);
+    }
+    .delete-board-button {
+      min-height: 32px;
+      border-color: rgba(240, 83, 121, .28);
+      background: rgba(240, 83, 121, .08);
+      color: #d8a5b1;
+      padding: 5px 9px;
+    }
+    .delete-board-button:hover, .delete-board-button:focus-visible {
+      border-color: rgba(240, 83, 121, .6);
+      background: rgba(240, 83, 121, .16);
+      color: white;
     }
     .metrics {
       display: grid;
@@ -228,7 +285,7 @@
       overflow: hidden;
       border: 1px solid var(--line-soft);
       border-radius: var(--radius);
-      background: rgba(22, 25, 29, .86);
+      background: linear-gradient(180deg, rgba(var(--board-tint), .075), rgba(22, 25, 29, .88) 150px);
       min-width: 300px;
       box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
     }
@@ -241,7 +298,7 @@
       justify-content: space-between;
       border-bottom: 1px solid var(--line-soft);
       border-radius: var(--radius) var(--radius) 0 0;
-      background: rgba(36, 41, 50, .96);
+      background: linear-gradient(180deg, rgba(var(--board-tint), .18), rgba(36, 41, 50, .96));
       padding: 13px 14px;
     }
     .column-head h2 {
@@ -280,7 +337,7 @@
       border: 1px solid rgba(255,255,255,.09);
       border-left: 5px solid var(--green);
       border-radius: var(--radius);
-      background: linear-gradient(180deg, #252a32, #1c2026);
+      background: linear-gradient(180deg, rgba(var(--board-tint), .11), transparent 90px), linear-gradient(180deg, #252a32, #1c2026);
       cursor: grab;
       padding: 14px;
       box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
@@ -850,6 +907,7 @@
     .suggestion.visible { display: block; }
     @media (max-width: 900px) {
       .header-row { align-items: stretch; flex-direction: column; }
+      .broadcast-toolbar { align-items: flex-start; flex-direction: column; }
       .metrics, .learning, .analysis-summary, .grid-2, .settings-grid { grid-template-columns: 1fr; }
       .switch { width: 100%; }
     }
@@ -858,7 +916,14 @@
 <body>
   <header>
     <div class="header-row">
-      <h1>Zeitmanagement</h1>
+      <div>
+        <h1>Zeitmanagement</h1>
+        <div class="broadcast-toolbar">
+          <div class="broadcast-switch" id="broadcastSwitch" aria-label="Sendung wechseln"></div>
+          <div class="color-palette" id="colorPalette" aria-label="Board-Farbe wählen"></div>
+          <button class="delete-board-button" id="deleteBoard" type="button">Board löschen</button>
+        </div>
+      </div>
       <div class="metrics" id="metrics"></div>
     </div>
     <div class="actions">
@@ -894,6 +959,12 @@
       </div>
       <div class="form">
         <label>Aufgabe <input id="title" value="Animation"></label>
+        <label>Sendung
+          <select id="broadcast">
+            <option value="aktuell">Aktuell</option>
+            <option value="mima">MiMa</option>
+          </select>
+        </label>
         <div class="grid-2">
           <label>Typ
             <select id="projectType">
@@ -936,8 +1007,34 @@
 
   <script>
     const STORAGE_KEY = "zeitmanagement-tool-v3";
-    const API_URL = "https://mad-design.de/mdr/api.php";
-    const SEND_SLOTS = ["17:45", "19:30", "21:45"];
+    const BOARD_PREFERENCES_KEY = "zeitmanagement-board-preferences-v1";
+    const API_URL = ["localhost", "127.0.0.1", "::1"].includes(location.hostname)
+      ? ""
+      : "https://mad-design.de/mdr/api.php";
+    const BROADCASTS = {
+      aktuell: {
+        label: "Aktuell",
+        slots: ["17:45", "19:30", "21:45"],
+        defaultDeadline: "17:15",
+        timelineStart: 12,
+        timelineEnd: 22,
+      },
+      mima: {
+        label: "MiMa",
+        slots: ["12:00–13:00", "13:05–14:00"],
+        defaultDeadline: "11:45",
+        timelineStart: 10,
+        timelineEnd: 15,
+      },
+    };
+    const BOARD_COLORS = {
+      slate: { label: "Schiefer", accent: "#6f8295", rgb: "111, 130, 149" },
+      blue: { label: "Nachtblau", accent: "#536f91", rgb: "83, 111, 145" },
+      teal: { label: "Petrol", accent: "#4f7b78", rgb: "79, 123, 120" },
+      olive: { label: "Olive", accent: "#727a58", rgb: "114, 122, 88" },
+      plum: { label: "Pflaume", accent: "#80677f", rgb: "128, 103, 127" },
+      rust: { label: "Terrakotta", accent: "#8b6658", rgb: "139, 102, 88" },
+    };
     const COLUMNS = [
       ["planning", "in Planung"],
       ["animation", "in Arbeit"],
@@ -945,9 +1042,10 @@
       ["delivered", "Fertig"],
     ];
     const TIMER_LABELS = { preparation: "Vorbereitung", animation: "in Arbeit" };
-    const DAY_START = 12;
-    const DAY_END = 22;
     let selectedSlot = "17:45";
+    let activeBroadcast = loadBoardPreferences().activeBroadcast;
+    let boardColors = loadBoardPreferences().colors;
+    let enabledBroadcasts = loadBoardPreferences().enabledBroadcasts;
     let view = "board";
     let editingId = null;
     let analysisQuery = "";
@@ -965,6 +1063,80 @@
 
     function uid() {
       return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+    }
+    function loadBoardPreferences() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(BOARD_PREFERENCES_KEY) || "{}");
+        const enabledBroadcasts = Array.isArray(stored.enabledBroadcasts)
+          ? stored.enabledBroadcasts.filter(key => BROADCASTS[key])
+          : Object.keys(BROADCASTS);
+        const safeEnabledBroadcasts = enabledBroadcasts.length ? enabledBroadcasts : ["aktuell"];
+        return {
+          activeBroadcast: safeEnabledBroadcasts.includes(stored.activeBroadcast) ? stored.activeBroadcast : safeEnabledBroadcasts[0],
+          enabledBroadcasts: safeEnabledBroadcasts,
+          colors: {
+            aktuell: BOARD_COLORS[stored.colors && stored.colors.aktuell] ? stored.colors.aktuell : "blue",
+            mima: BOARD_COLORS[stored.colors && stored.colors.mima] ? stored.colors.mima : "teal",
+          },
+        };
+      } catch {
+        return { activeBroadcast: "aktuell", enabledBroadcasts: Object.keys(BROADCASTS), colors: { aktuell: "blue", mima: "teal" } };
+      }
+    }
+    function saveBoardPreferences() {
+      localStorage.setItem(BOARD_PREFERENCES_KEY, JSON.stringify({ activeBroadcast, enabledBroadcasts, colors: boardColors }));
+    }
+    function applyBoardColor() {
+      const colorKey = boardColors[activeBroadcast] || "slate";
+      const color = BOARD_COLORS[colorKey];
+      document.documentElement.style.setProperty("--board-accent", color.accent);
+      document.documentElement.style.setProperty("--board-tint", color.rgb);
+    }
+    function renderBoardControls() {
+      const enabledButtons = enabledBroadcasts.map(key =>
+        `<button type="button" class="${activeBroadcast === key ? "active" : ""}" data-broadcast="${key}">${BROADCASTS[key].label}</button>`
+      );
+      const addButtons = Object.keys(BROADCASTS).filter(key => !enabledBroadcasts.includes(key)).map(key =>
+        `<button type="button" data-add-broadcast="${key}">+ ${BROADCASTS[key].label}</button>`
+      );
+      document.getElementById("broadcastSwitch").innerHTML = enabledButtons.concat(addButtons).join("");
+      document.getElementById("colorPalette").innerHTML = Object.entries(BOARD_COLORS).map(([key, color]) =>
+        `<button type="button" class="${boardColors[activeBroadcast] === key ? "active" : ""}" data-board-color="${key}" style="--swatch:${color.accent}" title="${color.label}" aria-label="${color.label}"></button>`
+      ).join("");
+      const deleteButton = document.getElementById("deleteBoard");
+      deleteButton.disabled = enabledBroadcasts.length <= 1;
+      deleteButton.title = enabledBroadcasts.length <= 1 ? "Mindestens ein Board muss bestehen bleiben." : `${selectedBroadcast().label}-Board löschen`;
+      applyBoardColor();
+    }
+    function deleteActiveBoard() {
+      if (enabledBroadcasts.length <= 1) {
+        alert("Mindestens ein Board muss bestehen bleiben.");
+        return;
+      }
+      const boardLabel = selectedBroadcast().label;
+      const boardTasks = tasks.filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt);
+      const detail = boardTasks.length ? ` Dabei werden ${boardTasks.length} Aufgaben gelöscht.` : "";
+      if (!confirm(`${boardLabel}-Board wirklich löschen?${detail}`)) return;
+      const deletedAt = new Date().toISOString();
+      tasks = tasks.map(task => taskIsInActiveBroadcast(task) && !task.deletedAt
+        ? { ...task, activeTimer: null, deletedAt, updatedAt: deletedAt }
+        : task
+      );
+      enabledBroadcasts = enabledBroadcasts.filter(key => key !== activeBroadcast);
+      activeBroadcast = enabledBroadcasts[0];
+      saveBoardPreferences();
+      save();
+      render();
+    }
+    function selectedBroadcast() {
+      return BROADCASTS[activeBroadcast];
+    }
+    function taskIsInActiveBroadcast(task) {
+      return (task.broadcast || "aktuell") === activeBroadcast;
+    }
+    function sendSlotMinutes(value) {
+      const match = String(value || "").match(/(\d{1,2}):(\d{2})/);
+      return match ? Number(match[1]) * 60 + Number(match[2]) : 0;
     }
     function toLocalDate(date) {
       const offset = date.getTimezoneOffset() * 60000;
@@ -1028,6 +1200,7 @@
         requester: task.requester || "",
         description: task.description || "",
         sendSlot: task.sendSlot || "17:45",
+        broadcast: BROADCASTS[task.broadcast] ? task.broadcast : "aktuell",
         productionDeadline: task.productionDeadline || combineDeadline(toLocalDate(new Date()), "17:15"),
         workStatus: normalizeStatus(task.workStatus),
         activeTimer: task.activeTimer || null,
@@ -1036,6 +1209,7 @@
         updatedAt: task.updatedAt || task.completedAt || task.archivedAt || task.createdAt || new Date().toISOString(),
         completedAt: task.completedAt || null,
         archivedAt: task.archivedAt || null,
+        deletedAt: task.deletedAt || null,
       };
     }
     function makeBackup() {
@@ -1075,7 +1249,7 @@
       return `<svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true">${paths[name] || ""}</svg>`;
     }
     function taskVersionMs(task) {
-      const dates = [task.updatedAt, task.archivedAt, task.completedAt, task.createdAt]
+      const dates = [task.deletedAt, task.updatedAt, task.archivedAt, task.completedAt, task.createdAt]
         .concat((task.sessions || []).flatMap(session => [session.startedAt, session.endedAt]))
         .filter(Boolean)
         .map(value => new Date(value).getTime())
@@ -1202,7 +1376,7 @@
     function archiveCompletedTasks(list, date = new Date()) {
       const today = toLocalDate(date);
       return list.map(task => {
-        if (task.archivedAt || !task.completedAt || localDateFromIso(task.completedAt) >= today) return task;
+        if (task.deletedAt || task.archivedAt || !task.completedAt || localDateFromIso(task.completedAt) >= today) return task;
         return touch({ ...task, archivedAt: date.toISOString() });
       });
     }
@@ -1256,20 +1430,20 @@
     }
     function activeTasks() {
       return tasks
-        .filter(task => !task.archivedAt && !task.completedAt && task.workStatus !== "delivered")
+        .filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt && !task.archivedAt && !task.completedAt && task.workStatus !== "delivered")
         .sort((a, b) => new Date(a.productionDeadline) - new Date(b.productionDeadline));
     }
     function completedTasks() {
-      return tasks.filter(task => !task.archivedAt && (task.completedAt || task.workStatus === "delivered"));
+      return tasks.filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt && !task.archivedAt && (task.completedAt || task.workStatus === "delivered"));
     }
     function archivedTasks() {
-      return tasks.filter(task => task.archivedAt);
+      return tasks.filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt && task.archivedAt);
     }
     function archiveWorkday() {
       const stamp = new Date().toISOString();
       let changed = false;
       tasks = tasks.map(task => {
-        if (task.archivedAt || !task.completedAt) return task;
+        if (task.deletedAt || task.archivedAt || !task.completedAt) return task;
         changed = true;
         return touch({ ...task, archivedAt: stamp });
       });
@@ -1284,7 +1458,7 @@
       const active = activeTasks();
       const completed = completedTasks();
       const today = toLocalDate(now);
-      const todaysTasks = tasks.filter(task => localDateFromIso(task.createdAt) === today);
+      const todaysTasks = tasks.filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt && localDateFromIso(task.createdAt) === today);
       document.getElementById("metrics").innerHTML = [
         renderMetric("Aktive Jobs", active.length),
         renderMetric("Heute erfasst", formatDuration(todaysTasks.reduce((sum, task) => sum + sumSessions(task), 0))),
@@ -1297,6 +1471,7 @@
         <div><span>Abgeschlossene Jobs</span><strong>${completed.length + archivedTasks().length}</strong></div>
       `;
       document.querySelectorAll(".switch button").forEach(button => button.classList.toggle("active", button.dataset.view === view));
+      renderBoardControls();
       if (view === "timeline") renderTimeline();
       else if (view === "analysis") renderAnalysis();
       else if (view === "archive") renderArchive();
@@ -1305,7 +1480,7 @@
     }
     function renderBoard() {
       document.getElementById("view").innerHTML = `<div class="board">${COLUMNS.map(([key, title]) => {
-        const columnTasks = tasks.filter(task => !task.archivedAt && task.workStatus === key)
+        const columnTasks = tasks.filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt && !task.archivedAt && task.workStatus === key)
           .sort((a, b) => new Date(a.productionDeadline) - new Date(b.productionDeadline));
         return `<section class="column" data-column="${key}">
           <div class="column-head"><h2>${title}</h2><span>${columnTasks.length}</span></div>
@@ -1383,20 +1558,20 @@
       </article>`;
     }
     function renderTimeline() {
-      const hours = Array.from({ length: DAY_END - DAY_START + 1 }, (_, index) => DAY_START + index);
-      const totalMinutes = (DAY_END - DAY_START) * 60;
-      const nowPosition = ((now.getHours() * 60 + now.getMinutes() - DAY_START * 60) / totalMinutes) * 100;
+      const { timelineStart, timelineEnd } = selectedBroadcast();
+      const hours = Array.from({ length: timelineEnd - timelineStart + 1 }, (_, index) => timelineStart + index);
+      const totalMinutes = (timelineEnd - timelineStart) * 60;
+      const nowPosition = ((now.getHours() * 60 + now.getMinutes() - timelineStart * 60) / totalMinutes) * 100;
       const rows = activeTasks().map(task => {
         const deadline = new Date(task.productionDeadline);
         const deadlineMinutes = deadline.getHours() * 60 + deadline.getMinutes();
         const created = new Date(task.createdAt);
         const createdMinutes = created.getHours() * 60 + created.getMinutes();
-        const startMinutes = Math.max(DAY_START * 60, Math.min(createdMinutes, deadlineMinutes));
-        const left = ((startMinutes - DAY_START * 60) / totalMinutes) * 100;
+        const startMinutes = Math.max(timelineStart * 60, Math.min(createdMinutes, deadlineMinutes));
+        const left = ((startMinutes - timelineStart * 60) / totalMinutes) * 100;
         const width = ((deadlineMinutes - startMinutes) / totalMinutes) * 100;
-        const [sendHour, sendMinute] = task.sendSlot.split(":").map(Number);
-        const sendLeft = (((sendHour * 60 + sendMinute) - DAY_START * 60) / totalMinutes) * 100;
-        const deadlineLeft = ((deadlineMinutes - DAY_START * 60) / totalMinutes) * 100;
+        const sendLeft = ((sendSlotMinutes(task.sendSlot) - timelineStart * 60) / totalMinutes) * 100;
+        const deadlineLeft = ((deadlineMinutes - timelineStart * 60) / totalMinutes) * 100;
         const state = risk(task);
         return `<div class="timeline-row">
           <div class="time-label"><strong>${escapeHtml(task.title)}</strong><span>${formatDuration(sumSessions(task))} erfasst</span></div>
@@ -1409,10 +1584,10 @@
         </div>`;
       }).join("");
       document.getElementById("view").innerHTML = `<div class="timeline-panel">
-        <div class="panel-head"><h2>Timeline</h2><span>Aktive Animationen</span></div>
+        <div class="panel-head"><h2>Timeline ${selectedBroadcast().label}</h2><span>Aktive Animationen</span></div>
         <div class="time-grid">
           <div class="time-label"></div>
-          <div class="scale">${hours.map(hour => `<span>${hour}:00</span>`).join("")}</div>
+          <div class="scale" style="grid-template-columns:repeat(${hours.length}, minmax(60px, 1fr))">${hours.map(hour => `<span>${hour}:00</span>`).join("")}</div>
           ${rows || '<div class="time-label"></div><div class="track"><div class="empty">Keine aktiven Animationen.</div></div>'}
         </div>
       </div>`;
@@ -1506,6 +1681,7 @@
     }
     function setForm(task) {
       document.getElementById("title").value = task.title || "Animation";
+      document.getElementById("broadcast").value = task.broadcast || activeBroadcast;
       document.getElementById("projectType").value = task.projectType || "ANIM";
       document.getElementById("abbreviation").value = task.abbreviation || "";
       document.getElementById("requester").value = task.requester || "";
@@ -1521,6 +1697,7 @@
       const title = document.getElementById("title").value.trim() || "Animation";
       return {
         title,
+        broadcast: document.getElementById("broadcast").value,
         projectType: document.getElementById("projectType").value,
         abbreviation: document.getElementById("abbreviation").value.trim().toUpperCase(),
         source: document.getElementById("source").value,
@@ -1550,20 +1727,23 @@
     }
     function openDialog(id) {
       editingId = typeof id === "string" ? id : null;
+      const broadcast = selectedBroadcast();
       const deadline = new Date();
-      deadline.setHours(17, 15, 0, 0);
+      const [deadlineHour, deadlineMinute] = broadcast.defaultDeadline.split(":").map(Number);
+      deadline.setHours(deadlineHour, deadlineMinute, 0, 0);
       document.getElementById("dialogTitle").textContent = editingId ? "Aufgabe bearbeiten" : "Aufgabe hinzufügen";
       document.getElementById("create").textContent = editingId ? "Änderungen speichern" : "Animation anlegen";
       const task = editingId ? tasks.find(item => item.id === editingId) : null;
       setForm(task || {
         title: "Animation",
+        broadcast: activeBroadcast,
         projectType: "ANIM",
         abbreviation: "",
         source: "Formular",
         requester: "",
         description: "",
-        sendSlot: "17:45",
-        productionDeadline: combineDeadline(toLocalDate(deadline), "17:15"),
+        sendSlot: broadcast.slots[0],
+        productionDeadline: combineDeadline(toLocalDate(deadline), broadcast.defaultDeadline),
       });
       document.getElementById("modal").classList.add("open");
     }
@@ -1572,7 +1752,10 @@
       editingId = null;
     }
     function renderSlots() {
-      document.getElementById("slots").innerHTML = SEND_SLOTS.map(slot =>
+      const broadcastKey = document.getElementById("broadcast").value;
+      const slots = BROADCASTS[broadcastKey].slots;
+      if (!slots.includes(selectedSlot)) selectedSlot = slots[0];
+      document.getElementById("slots").innerHTML = slots.map(slot =>
         `<button type="button" class="slot ${selectedSlot === slot ? "active" : ""}" data-slot="${slot}">${slot}</button>`
       ).join("");
     }
@@ -1610,7 +1793,8 @@
       const task = tasks.find(item => item.id === id);
       if (!task) return;
       if (!confirm(`"${task.title}" wirklich löschen?`)) return;
-      tasks = tasks.filter(item => item.id !== id);
+      const deletedAt = new Date().toISOString();
+      tasks = tasks.map(item => item.id === id ? { ...item, activeTimer: null, deletedAt, updatedAt: deletedAt } : item);
       openDetailIds.delete(id);
       save();
       render();
@@ -1731,15 +1915,18 @@
           const rows = parseCsv(String(reader.result || ""));
           if (rows.length < 2) throw new Error("Die Datei enthält keine Aufgaben.");
           const headers = rows[0];
+          const broadcast = selectedBroadcast();
           const imported = rows.slice(1).map(row => {
             const title = pickField(row, headers, ["Aufgabe", "Titel", "Title", "Task", "Name"]) || "Importierte Aufgabe";
             const date = parseDateInput(pickField(row, headers, ["Deadline-Datum", "Fälligkeitsdatum", "Due date", "Due", "Datum"]));
-            const time = parseTimeInput(pickField(row, headers, ["Deadline-Zeit", "Uhrzeit", "Time", "Deadline"]), "17:15");
-            const sendSlot = parseTimeInput(pickField(row, headers, ["Sendezeit", "Sendung", "Sendetermin"]), "17:45");
+            const time = parseTimeInput(pickField(row, headers, ["Deadline-Zeit", "Uhrzeit", "Time", "Deadline"]), broadcast.defaultDeadline);
+            const importedSlot = pickField(row, headers, ["Sendezeit", "Sendung", "Sendetermin"]);
+            const sendSlot = broadcast.slots.includes(importedSlot) ? importedSlot : broadcast.slots[0];
             const status = mapStatus(pickField(row, headers, ["Bucket", "Status", "Spalte", "Progress"]));
             return normalizeTask({
               id: uid(),
               title,
+              broadcast: activeBroadcast,
               projectType: pickField(row, headers, ["Typ", "Type"]) || "ANIM",
               abbreviation: pickField(row, headers, ["Kürzel", "Kuerzel", "Code"]).toUpperCase(),
               source: "Teams",
@@ -1758,7 +1945,8 @@
           });
           let added = 0;
           imported.forEach(task => {
-            const duplicate = tasks.some(existing =>
+            const duplicate = tasks.some(existing => !existing.deletedAt &&
+              existing.broadcast === task.broadcast &&
               normalizeText(existing.title) === normalizeText(task.title) &&
               existing.productionDeadline === task.productionDeadline
             );
@@ -1809,6 +1997,7 @@
     document.getElementById("cancel").addEventListener("click", closeDialog);
     document.getElementById("create").addEventListener("click", createTask);
     document.getElementById("notify").addEventListener("click", enableNotifications);
+    document.getElementById("deleteBoard").addEventListener("click", deleteActiveBoard);
     document.getElementById("backupFile").addEventListener("change", event => {
       const file = event.target.files && event.target.files[0];
       if (file) loadBackupFile(file);
@@ -1820,6 +2009,35 @@
       event.target.value = "";
     });
     document.getElementById("title").addEventListener("input", updateSuggestion);
+    document.getElementById("broadcast").addEventListener("change", event => {
+      const broadcast = BROADCASTS[event.target.value];
+      selectedSlot = broadcast.slots[0];
+      document.getElementById("deadlineTime").value = broadcast.defaultDeadline;
+      renderSlots();
+    });
+    document.getElementById("broadcastSwitch").addEventListener("click", event => {
+      const addButton = event.target.closest("button[data-add-broadcast]");
+      if (addButton) {
+        enabledBroadcasts.push(addButton.dataset.addBroadcast);
+        activeBroadcast = addButton.dataset.addBroadcast;
+        saveBoardPreferences();
+        render();
+        return;
+      }
+      const button = event.target.closest("button[data-broadcast]");
+      if (!button) return;
+      activeBroadcast = button.dataset.broadcast;
+      analysisQuery = "";
+      saveBoardPreferences();
+      render();
+    });
+    document.getElementById("colorPalette").addEventListener("click", event => {
+      const button = event.target.closest("button[data-board-color]");
+      if (!button) return;
+      boardColors[activeBroadcast] = button.dataset.boardColor;
+      saveBoardPreferences();
+      renderBoardControls();
+    });
     document.querySelector(".switch").addEventListener("click", event => {
       const button = event.target.closest("button[data-view]");
       if (!button) return;
