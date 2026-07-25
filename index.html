@@ -871,12 +871,15 @@
       display: grid;
       gap: 12px;
     }
-    .form label {
+    .form label, .form-field {
       display: grid;
       gap: 6px;
       color: #cbd3dd;
       font-size: 13px;
       font-weight: 800;
+    }
+    .form-field > span {
+      display: block;
     }
     .form input, .form select, .form textarea {
       width: 100%;
@@ -1001,9 +1004,9 @@
             </select>
           </label>
         </div>
-        <label>Sendezeit
+        <div class="form-field"><span>Sendezeit</span>
           <div class="slots" id="slots"></div>
-        </label>
+        </div>
         <div class="grid-2">
           <label>Deadline-Datum <input type="date" id="deadlineDate"></label>
           <label>Deadline-Zeit <input type="time" id="deadlineTime" value="17:15"></label>
@@ -1874,9 +1877,10 @@
       view = button.dataset.view;
       render();
     });
-    document.getElementById("slots").addEventListener("click", event => {
+    document.getElementById("modal").addEventListener("click", event => {
       const button = event.target.closest("button[data-slot]");
       if (!button) return;
+      event.preventDefault();
       selectedSlot = button.dataset.slot;
       renderSlots();
     });
