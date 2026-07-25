@@ -29,11 +29,12 @@ test("server-renders the production timeline app shell", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>Zeitmanagement fuer Animationen<\/title>/i);
-  assert.match(html, /Zeitmanagement fuer Animationen/);
+  assert.match(html, /<title>Zeitmanagement für Animationen<\/title>/i);
+  assert.match(html, /Zeitmanagement für Animationen/);
+  assert.doesNotMatch(html, /Zeitmanagement fuer Animationen/);
   assert.doesNotMatch(html, /Produktions-Timeline/);
   assert.doesNotMatch(html, /MDR Aktuell/);
-  assert.match(html, /Aufgabe hinzufuegen/);
+  assert.match(html, /Aufgabe hinzufügen/);
   assert.match(html, /Kanban/);
   assert.match(html, /Timeline/);
   assert.match(html, /in Planung/);

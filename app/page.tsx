@@ -157,7 +157,7 @@ function getRisk(task: Task, now: Date) {
 
 function riskLabel(risk: string) {
   if (risk === "done") return "Fertig";
-  if (risk === "late") return "Ueberfaellig";
+  if (risk === "late") return "Überfällig";
   if (risk === "critical") return "Kritisch";
   if (risk === "tight") return "Knapp";
   return "Im Plan";
@@ -374,8 +374,8 @@ export default function Home() {
         <div className="mx-auto flex max-w-[1600px] flex-col gap-5 px-5 py-5 lg:px-8">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
             <div>
-              <h1 className="max-w-4xl text-4xl font-semibold uppercase tracking-[0.18em] text-[#f4f4f2] md:text-6xl">
-                Zeitmanagement fuer Animationen
+              <h1 className="max-w-4xl text-3xl font-semibold uppercase tracking-[0.14em] text-[#f4f4f2] md:text-5xl">
+                Zeitmanagement für Animationen
               </h1>
             </div>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -389,7 +389,7 @@ export default function Home() {
           <div className="top-actions">
             <button className="add-task-button" onClick={() => setIsComposerOpen(true)}>
               <span>+</span>
-              Aufgabe hinzufuegen
+              Aufgabe hinzufügen
             </button>
             <div className="view-switch" aria-label="Ansicht wechseln">
               <button className={view === "board" ? "active" : ""} onClick={() => setView("board")}>
@@ -452,10 +452,10 @@ function TaskComposerDialog({
   onClose: () => void;
 }) {
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Aufgabe hinzufuegen">
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Aufgabe hinzufügen">
       <div className="task-modal">
         <div className="modal-head">
-          <h2>Aufgabe hinzufuegen</h2>
+          <h2>Aufgabe hinzufügen</h2>
           <button onClick={onClose} aria-label="Schliessen">x</button>
         </div>
         <div className="form-grid">
@@ -473,7 +473,7 @@ function TaskComposerDialog({
               </select>
             </label>
             <label>
-              Kuerzel
+              Kürzel
               <input value={draft.abbreviation} onChange={(e) => onDraftChange({ ...draft, abbreviation: e.target.value.toUpperCase() })} />
             </label>
           </div>

@@ -1,6 +1,6 @@
-# Zeitmanagement fuer Animationen
+# Zeitmanagement für Animationen
 
-Zeitmanagement-Tool im Darkmode fuer Produktionen mit Animationsdeadline,
+Zeitmanagement-Tool im Darkmode für Produktionen mit Animationsdeadline,
 Sendezeit, Kanban-Board, Timeline, Vorbereitungstimer,
 Arbeits-Timer und Tagesauswertung.
 
@@ -11,15 +11,15 @@ npm install
 npm run dev
 ```
 
-Die App laeuft lokal im Browser. Der Entwicklungsserver zeigt die lokale Adresse
+Die App läuft lokal im Browser. Der Entwicklungsserver zeigt die lokale Adresse
 im Terminal, normalerweise `http://localhost:3000/`.
 
 ## Wichtige Funktionen
 
 - Animationen werden im Kanban-Board per Drag and Drop verschoben.
 - Die Timeline ist eine eigene Ansicht.
-- Neue Aufgaben werden ueber den `+ Aufgabe hinzufuegen` Dialog angelegt.
-- Projekttyp `ANIM`, `INFO` oder `KARTE` und Kuerzel werden fuer den Ordnernamen erfasst.
+- Neue Aufgaben werden über den `+ Aufgabe hinzufügen` Dialog angelegt.
+- Projekttyp `ANIM`, `INFO` oder `KARTE` und Kürzel werden für den Ordnernamen erfasst.
 - Die festen Sendefenster `17:45`, `19:30` und `21:45` sind als Schnellwahl hinterlegt.
 - Die eigentliche Produktionsdeadline kann separat gesetzt werden.
 - Das Board nutzt die Spalten `in Planung`, `in Arbeit`, `Abnahme` und `Fertig`.
@@ -32,7 +32,7 @@ im Terminal, normalerweise `http://localhost:3000/`.
   heruntergeladen werden: `AKT yyyy-MM-dd TYP KUERZEL` mit `_MAT` und `_ERG`.
 - Browser-Benachrichtigungen warnen bei kritischen Aufgaben, solange die App offen ist.
 
-## Pruefen
+## Prüfen
 
 ```bash
 npm run lint
