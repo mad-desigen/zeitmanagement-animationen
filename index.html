@@ -1126,6 +1126,8 @@
     function renderCard(task) {
       const remaining = Math.floor((new Date(task.productionDeadline).getTime() - now.getTime()) / 1000);
       const state = risk(task);
+      const primaryTimerKind = task.workStatus === "planning" ? "preparation" : "animation";
+      const primaryTimerActive = task.activeTimer && task.activeTimer.kind === primaryTimerKind;
       const animationActive = task.activeTimer && task.activeTimer.kind === "animation";
       const preparationActive = task.activeTimer && task.activeTimer.kind === "preparation";
       return `<article class="card ${state}" draggable="true" data-id="${task.id}">
@@ -1141,14 +1143,14 @@
             </div>
             <div class="play-cluster">
               <button
-                class="play-button ${animationActive ? "active" : ""}"
+                class="play-button ${primaryTimerActive ? "active" : ""}"
                 data-action="timer"
-                data-kind="animation"
+                data-kind="${primaryTimerKind}"
                 data-id="${task.id}"
-                title="${animationActive ? "Zeiterfassung stoppen" : "Zeiterfassung starten"}"
-                aria-label="${animationActive ? "Zeiterfassung stoppen" : "Zeiterfassung starten"}"
+                title="${primaryTimerActive ? "Zeiterfassung stoppen" : "Zeiterfassung starten"}"
+                aria-label="${primaryTimerActive ? "Zeiterfassung stoppen" : "Zeiterfassung starten"}"
               >
-                ${animationActive ? "Stop" : "Start"}
+                ${primaryTimerActive ? "Stop" : "Start"}
               </button>
             </div>
           </div>
@@ -1396,18 +1398,6 @@
     function moveTask(id, status) {
       tasks = tasks.map(task => {
         if (task.id !== id) return task;
-        if (status === "animation") {
-          if (task.activeTimer && task.activeTimer.kind === "animation") {
-            return { ...task, workStatus: "animation", completedAt: null };
-          }
-          const closed = closeTimer(task);
-          return {
-            ...closed,
-            workStatus: "animation",
-            completedAt: null,
-            activeTimer: { kind: "animation", startedAt: new Date().toISOString() },
-          };
-        }
         const closed = closeTimer(task);
         return { ...closed, workStatus: status, completedAt: status === "delivered" ? new Date().toISOString() : null };
       });
