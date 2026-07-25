@@ -195,14 +195,8 @@ function normalizeTasks(raw: string | null): Task[] {
 }
 
 export default function Home() {
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    if (typeof window === "undefined") return [];
-    return normalizeTasks(
-      window.localStorage.getItem(STORAGE_KEY) ??
-        window.localStorage.getItem("zeitmanagement-tool-v2") ??
-        window.localStorage.getItem("zeitmanagement-tool-v1"),
-    );
-  });
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [hasLoadedLocalTasks, setHasLoadedLocalTasks] = useState(false);
   const [draft, setDraft] = useState<Draft>(initialDraft);
   const [now, setNow] = useState(new Date());
   const [view, setView] = useState<ViewMode>("board");
@@ -214,8 +208,24 @@ export default function Home() {
   const warnedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setTasks(
+        normalizeTasks(
+          window.localStorage.getItem(STORAGE_KEY) ??
+            window.localStorage.getItem("zeitmanagement-tool-v2") ??
+            window.localStorage.getItem("zeitmanagement-tool-v1"),
+        ),
+      );
+      setHasLoadedLocalTasks(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedLocalTasks) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-  }, [tasks]);
+  }, [hasLoadedLocalTasks, tasks]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(new Date()), 1000);
