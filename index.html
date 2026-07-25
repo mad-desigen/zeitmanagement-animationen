@@ -469,7 +469,7 @@
       min-height: 66px;
       border-color: rgba(56, 193, 114, .7);
       background: linear-gradient(180deg, #40d17c, #219653);
-      color: #07120c;
+      color: white;
       font-size: 0;
       box-shadow: 0 14px 28px rgba(56, 193, 114, .18);
     }
@@ -1177,9 +1177,10 @@
       return { ...task, updatedAt: new Date().toISOString() };
     }
     async function apiRequest(action, body = {}) {
-      const response = await fetch(API_URL + "?action=" + encodeURIComponent(action), {
+      const response = await fetch(API_URL + "?action=" + encodeURIComponent(action) + "&_=" + Date.now(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        cache: "no-store",
         body: JSON.stringify(body),
       });
       const data = await response.json().catch(() => null);
@@ -1956,7 +1957,7 @@
       }
       warnCritical();
       if (draggingTaskId) return;
-      if (!shouldPauseLiveRender() && Date.now() - lastServerPull > 4000) {
+      if (!shouldPauseLiveRender() && Date.now() - lastServerPull > 1000) {
         lastServerPull = Date.now();
         loadFromServer({ silent: true });
       }
