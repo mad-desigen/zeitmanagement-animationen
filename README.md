@@ -46,14 +46,10 @@ im Terminal, normalerweise `http://localhost:3000/`.
 
 ## Datenspeicherung
 
-Die App selbst wird über GitHub Pages ausgeliefert. Laufende Arbeitsdaten werden
-lokal im Browser gespeichert. Für eine sichere Sicherung gibt es `Backup
-speichern` und `Backup laden`.
-
-Direktes Speichern laufender Aufgaben in GitHub ist in einer öffentlichen
-Browser-App bewusst nicht eingebaut, weil dafür ein Schreibzugang im Browser
-liegen müsste. Das wäre für Arbeitsdaten und ein öffentliches Repository nicht
-sicher.
+Die App kann als statische `index.html` laufen und speichert lokal als Fallback
+im Browser. Für globale Synchronisation nutzt sie `api.php` und speichert die
+Aufgaben zentral in MySQL. Das Server-Passwort wird im Browser gespeichert und
+für Laden/Speichern an das API gesendet.
 
 ## Prüfen
 
@@ -64,6 +60,5 @@ npm test
 
 ## GitHub-Nutzung
 
-Der Code kann im GitHub-Repo versioniert werden. Die Arbeitsdaten liegen lokal
-im Browser, damit laufende Timer nicht staendig kleine GitHub-Aenderungen
-erzeugen.
+Der Code kann im GitHub-Repo versioniert werden. Laufende Arbeitsdaten gehören
+auf den Server in die Datenbank, nicht in Git-Commits.

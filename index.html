@@ -1011,7 +1011,7 @@
           <label>Notiz <textarea id="description" rows="4"></textarea></label>
           <div class="suggestion" id="timeSuggestion"></div>
       </div>
-      <p class="hint">Die Daten werden lokal in diesem Browser gespeichert. Keine Anmeldung, keine Installation.</p>
+      <p class="hint">Die Daten werden lokal zwischengespeichert und mit dem Server synchronisiert.</p>
       <div class="modal-actions">
         <button id="cancel">Abbrechen</button>
         <button class="primary" id="create">Animation anlegen</button>
@@ -1021,11 +1021,8 @@
 
   <script>
     const STORAGE_KEY = "zeitmanagement-tool-v3";
-    const SYNC_KEY = "zeitmanagement-github-sync-v1";
-    const GITHUB_OWNER = "mad-desigen";
-    const GITHUB_REPO = "zeitmanagement-animationen";
-    const GITHUB_BRANCH = "main";
-    const GITHUB_DATA_PATH = "data/tasks.json";
+    const SERVER_SYNC_KEY = "zeitmanagement-server-sync-v1";
+    const API_URL = "api.php";
     const SEND_SLOTS = ["17:45", "19:30", "21:45"];
     const COLUMNS = [
       ["planning", "in Planung"],
@@ -1047,7 +1044,7 @@
     let lastArchiveDate = toLocalDate(new Date());
     let tasks = archiveCompletedTasks(loadTasks(), now);
     let syncSettings = loadSyncSettings();
-    let syncStatus = { tone: "", text: "GitHub-Sync nicht eingerichtet." };
+    let syncStatus = { tone: "", text: "Server-Sync nicht eingerichtet." };
     let syncTimer = null;
     let isSyncing = false;
 
@@ -1144,18 +1141,18 @@
     function loadSyncSettings() {
       try {
         return {
-          enabled: localStorage.getItem(SYNC_KEY + ":enabled") === "true",
-          token: localStorage.getItem(SYNC_KEY + ":token") || "",
+          enabled: localStorage.getItem(SERVER_SYNC_KEY + ":enabled") === "true",
+          password: localStorage.getItem(SERVER_SYNC_KEY + ":password") || "",
         };
       } catch {
-        return { enabled: false, token: "" };
+        return { enabled: false, password: "" };
       }
     }
     function saveSyncSettings(settings = syncSettings) {
       syncSettings = settings;
-      localStorage.setItem(SYNC_KEY + ":enabled", settings.enabled ? "true" : "false");
-      if (settings.token) localStorage.setItem(SYNC_KEY + ":token", settings.token);
-      else localStorage.removeItem(SYNC_KEY + ":token");
+      localStorage.setItem(SERVER_SYNC_KEY + ":enabled", settings.enabled ? "true" : "false");
+      if (settings.password) localStorage.setItem(SERVER_SYNC_KEY + ":password", settings.password);
+      else localStorage.removeItem(SERVER_SYNC_KEY + ":password");
     }
     function taskVersionMs(task) {
       const dates = [task.updatedAt, task.archivedAt, task.completedAt, task.createdAt]
@@ -1177,67 +1174,27 @@
     function touch(task) {
       return { ...task, updatedAt: new Date().toISOString() };
     }
-    function encodeBase64Utf8(value) {
-      return btoa(unescape(encodeURIComponent(value)));
-    }
-    function decodeBase64Utf8(value) {
-      return decodeURIComponent(escape(atob(value.replace(/\n/g, ""))));
-    }
-    function githubHeaders() {
-      const headers = {
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-      };
-      if (syncSettings.token) headers.Authorization = "Bearer " + syncSettings.token;
-      return headers;
-    }
-    function githubFileUrl() {
-      return `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_DATA_PATH}`;
-    }
-    async function readGithubStore() {
-      const response = await fetch(githubFileUrl() + "?ref=" + encodeURIComponent(GITHUB_BRANCH), {
-        headers: githubHeaders(),
+    async function apiRequest(action, body = {}) {
+      if (!syncSettings.password) throw new Error("Server-Passwort fehlt.");
+      const response = await fetch(API_URL + "?action=" + encodeURIComponent(action), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: syncSettings.password, ...body }),
       });
-      if (response.status === 404) return { sha: null, tasks: [] };
-      if (!response.ok) throw new Error("GitHub konnte nicht gelesen werden.");
-      const file = await response.json();
-      const data = JSON.parse(decodeBase64Utf8(file.content || ""));
-      const remoteTasks = Array.isArray(data) ? data : data && Array.isArray(data.tasks) ? data.tasks : [];
-      return { sha: file.sha, tasks: remoteTasks.map(normalizeTask) };
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data || data.ok === false) {
+        throw new Error(data && data.error ? data.error : "Server konnte nicht synchronisieren.");
+      }
+      return data;
     }
-    async function writeGithubStore() {
-      if (!syncSettings.token) throw new Error("Zum Speichern fehlt der GitHub-Token.");
-      const remote = await readGithubStore();
-      const merged = mergeTasks(tasks, remote.tasks);
-      const payload = {
-        app: "zeitmanagement",
-        version: 5,
-        updatedAt: new Date().toISOString(),
-        tasks: merged,
-      };
-      const response = await fetch(githubFileUrl(), {
-        method: "PUT",
-        headers: { ...githubHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: "Update Zeitmanagement data",
-          content: encodeBase64Utf8(JSON.stringify(payload, null, 2)),
-          branch: GITHUB_BRANCH,
-          sha: remote.sha || undefined,
-        }),
-      });
-      if (!response.ok) throw new Error("GitHub konnte nicht gespeichert werden.");
-      tasks = archiveCompletedTasks(merged, new Date());
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-      syncStatus = { tone: "ok", text: "GitHub gespeichert: " + formatClock(new Date()) };
-    }
-    async function loadFromGithub({ silent = false } = {}) {
+    async function loadFromServer({ silent = false } = {}) {
       if (isSyncing) return;
       isSyncing = true;
       try {
-        const remote = await readGithubStore();
-        tasks = archiveCompletedTasks(mergeTasks(tasks, remote.tasks), new Date());
+        const remote = await apiRequest("load");
+        tasks = archiveCompletedTasks(mergeTasks(tasks, remote.tasks || []), new Date());
         localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-        syncStatus = { tone: "ok", text: "GitHub geladen: " + formatClock(new Date()) };
+        syncStatus = { tone: "ok", text: "Server geladen: " + formatClock(new Date()) };
         render();
       } catch (error) {
         syncStatus = { tone: "error", text: error.message };
@@ -1247,12 +1204,15 @@
         isSyncing = false;
       }
     }
-    async function saveToGithub({ silent = false } = {}) {
+    async function saveToServer({ silent = false } = {}) {
       if (isSyncing) return;
       isSyncing = true;
       try {
-        await writeGithubStore();
-        if (!silent) alert("GitHub wurde gespeichert.");
+        const remote = await apiRequest("save", { tasks });
+        tasks = archiveCompletedTasks(mergeTasks(tasks, remote.tasks || []), new Date());
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        syncStatus = { tone: "ok", text: "Server gespeichert: " + formatClock(new Date()) };
+        if (!silent) alert("Server wurde gespeichert.");
         render();
       } catch (error) {
         syncStatus = { tone: "error", text: error.message };
@@ -1262,11 +1222,11 @@
         isSyncing = false;
       }
     }
-    function queueGithubSync() {
-      if (!syncSettings.enabled || !syncSettings.token) return;
+    function queueServerSync() {
+      if (!syncSettings.enabled || !syncSettings.password) return;
       clearTimeout(syncTimer);
-      syncStatus = { tone: "warn", text: "GitHub-Sync wartet..." };
-      syncTimer = setTimeout(() => saveToGithub({ silent: true }), 900);
+      syncStatus = { tone: "warn", text: "Server-Sync wartet..." };
+      syncTimer = setTimeout(() => saveToServer({ silent: true }), 900);
     }
     function loadTasks() {
       try {
@@ -1278,7 +1238,7 @@
     }
     function save() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-      queueGithubSync();
+      queueServerSync();
     }
     function saveBackup() {
       downloadJson(makeBackup(), `zeitmanagement-backup-${toLocalDate(new Date())}.json`);
@@ -1590,17 +1550,17 @@
           </div>
           <div class="settings-card">
             <h3>Speicherort</h3>
-            <p>GitHub ist die gemeinsame Datenablage. Lesen geht öffentlich, Speichern braucht einen Token mit Schreibrecht auf dieses Repo.</p>
-            <label>GitHub-Token
-              <input id="syncToken" type="password" value="${escapeHtml(syncSettings.token)}" placeholder="github_pat_...">
+            <p>Der Server speichert Aufgaben und Zeiten zentral in der Datenbank. Neue Browser brauchen nur einmal das Sync-Passwort.</p>
+            <label>Sync-Passwort
+              <input id="syncPassword" type="password" value="${escapeHtml(syncSettings.password)}" placeholder="Passwort">
             </label>
             <label>
-              <span><input id="syncEnabled" type="checkbox" ${syncSettings.enabled ? "checked" : ""}> Automatisch nach GitHub speichern</span>
+              <span><input id="syncEnabled" type="checkbox" ${syncSettings.enabled ? "checked" : ""}> Automatisch mit Server synchronisieren</span>
             </label>
             <div class="settings-actions">
               <button class="secondary" id="saveSyncSettings">Verbindung speichern</button>
-              <button class="secondary" id="loadGithub">GitHub laden</button>
-              <button class="secondary" id="saveGithub">GitHub speichern</button>
+              <button class="secondary" id="loadServer">Server laden</button>
+              <button class="secondary" id="saveServer">Server speichern</button>
             </div>
             <div class="sync-status ${syncStatus.tone}" id="syncStatus">${escapeHtml(syncStatus.text)}</div>
           </div>
@@ -1935,14 +1895,14 @@
       if (event.target.id === "importCsv") document.getElementById("csvFile").click();
       if (event.target.id === "closeDay") archiveWorkday();
       if (event.target.id === "saveSyncSettings") {
-        const token = document.getElementById("syncToken").value.trim();
+        const password = document.getElementById("syncPassword").value;
         const enabled = document.getElementById("syncEnabled").checked;
-        saveSyncSettings({ token, enabled });
-        syncStatus = { tone: "ok", text: enabled && token ? "GitHub-Sync aktiv." : "GitHub-Verbindung gespeichert." };
+        saveSyncSettings({ password, enabled });
+        syncStatus = { tone: "ok", text: enabled && password ? "Server-Sync aktiv." : "Server-Verbindung gespeichert." };
         render();
       }
-      if (event.target.id === "loadGithub") loadFromGithub();
-      if (event.target.id === "saveGithub") saveToGithub();
+      if (event.target.id === "loadServer") loadFromServer();
+      if (event.target.id === "saveServer") saveToServer();
     });
     document.getElementById("view").addEventListener("input", event => {
       if (event.target.id !== "analysisSearch") return;
@@ -1993,7 +1953,7 @@
     renderSlots();
     updateNotificationButton("Notification" in window ? Notification.permission : "default");
     render();
-    loadFromGithub({ silent: true });
+    if (syncSettings.password) loadFromServer({ silent: true });
   </script>
 </body>
 </html>
