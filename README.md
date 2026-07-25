@@ -1,4 +1,4 @@
-# MDR Aktuell Produktions-Timeline
+# Produktions-Timeline
 
 Zeitmanagement-Tool im Darkmode fuer Produktionen mit Animationsdeadline,
 Sendezeit, Kanban-Board, Produktions-Timeline, Vorbereitungstimer,

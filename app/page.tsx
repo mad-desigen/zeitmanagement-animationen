@@ -69,7 +69,7 @@ const initialDraft = (): Draft => {
   deadline.setHours(17, 15, 0, 0);
 
   return {
-    title: "MDR Aktuell Animation",
+    title: "Animation",
     projectType: "ANIM",
     abbreviation: "",
     source: "Formular",
@@ -195,7 +195,7 @@ function normalizeTasks(raw: string | null): Task[] {
     const parsed = JSON.parse(raw) as Array<Partial<Task>>;
     return parsed.map((task) => ({
       id: task.id ?? uid(),
-      title: task.title ?? "MDR Aktuell Animation",
+      title: task.title ?? "Animation",
       projectType: task.projectType ?? "ANIM",
       abbreviation: task.abbreviation ?? "",
       source: task.source ?? "Formular",
@@ -378,7 +378,7 @@ export default function Home() {
                 Zeitmanagement fuer Animationen
               </p>
               <h1 className="mt-1 text-3xl font-semibold tracking-normal text-[#14201e] md:text-4xl">
-                MDR Aktuell Produktion
+                Produktions-Timeline
               </h1>
             </div>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

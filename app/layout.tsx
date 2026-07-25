@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MDR Aktuell Produktions-Timeline",
+  title: "Produktions-Timeline",
   description: "Lokales Zeitmanagement-Tool fuer Animationen, Deadlines und Arbeitszeiten.",
   icons: {
     icon: "/favicon.svg",
