@@ -136,6 +136,12 @@ test("supports server-backed file uploads and cropped title images", async () =>
   assert.match(standaloneApp, /data-action="attach"/);
   assert.match(standaloneApp, /isInspectingCard = Boolean\(document\.querySelector\("\.card:hover"\)\)/);
   assert.match(standaloneApp, /id="galleryModal"/);
+  assert.match(standaloneApp, /id="galleryPrev"/);
+  assert.match(standaloneApp, /id="galleryNext"/);
+  assert.match(standaloneApp, /function boardImages\(\)/);
+  assert.match(standaloneApp, /function stepGallery\(direction\)/);
+  assert.match(standaloneApp, /event\.key === "ArrowLeft"/);
+  assert.match(standaloneApp, /event\.key === "ArrowRight"/);
   assert.match(standaloneApp, /data-action="view-file"/);
   assert.match(standaloneApp, /data-action="delete-file"/);
   assert.match(standaloneApp, /grid-auto-columns:\s*minmax\(390px, 1fr\)/);
