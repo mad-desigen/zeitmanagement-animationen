@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#101214">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Zeitmanagement">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
   <title>Zeitmanagement</title>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -57,10 +58,12 @@
       padding: 9px 13px;
       transition: transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
     }
-    button:hover {
-      transform: translateY(-1px);
-      border-color: rgba(255,255,255,.18);
-      background: #2b323d;
+    @media (hover: hover) and (pointer: fine) {
+      button:hover {
+        transform: translateY(-1px);
+        border-color: rgba(255,255,255,.18);
+        background: #2b323d;
+      }
     }
     button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
       outline: 2px solid rgba(35, 136, 255, .85);
@@ -250,6 +253,15 @@
       padding-bottom: 8px;
       scroll-snap-type: x proximity;
     }
+    .mobile-board-tabs {
+      display: none;
+    }
+    .mobile-task-list {
+      display: none;
+    }
+    .mobile-timeline-list {
+      display: none;
+    }
     .column {
       overflow: hidden;
       border: 1px solid var(--line-soft);
@@ -314,10 +326,12 @@
       box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
       transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
     }
-    .card:hover {
-      transform: translateY(-2px);
-      border-color: rgba(255,255,255,.16);
-      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.32);
+    @media (hover: hover) and (pointer: fine) {
+      .card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(255,255,255,.16);
+        box-shadow: 0 18px 42px rgba(0, 0, 0, 0.32);
+      }
     }
     .card.tight { border-left-color: var(--orange); }
     .card.critical, .card.late { border-left-color: var(--pink); }
@@ -582,10 +596,12 @@
       background: rgba(255,255,255,.045);
       color: var(--muted);
     }
-    .delete-action:hover, .delete-action:focus-visible {
-      border-color: rgba(240, 83, 121, .6);
-      background: rgba(240, 83, 121, .14);
-      color: white;
+    @media (hover: hover) and (pointer: fine) {
+      .delete-action:hover, .delete-action:focus-visible {
+        border-color: rgba(240, 83, 121, .6);
+        background: rgba(240, 83, 121, .14);
+        color: white;
+      }
     }
     .note {
       border-left: 3px solid var(--orange);
@@ -1190,20 +1206,21 @@
     }
     @media (max-width: 700px) {
       body {
-        padding-bottom: calc(98px + env(safe-area-inset-bottom));
+        padding-bottom: calc(118px + env(safe-area-inset-bottom));
       }
       header {
         position: static;
-        padding: 16px 14px 10px;
+        padding: calc(12px + env(safe-area-inset-top)) 12px 8px;
       }
       h1 {
-        font-size: 28px;
+        font-size: 23px;
+        letter-spacing: .035em;
       }
       .header-row {
         gap: 12px;
       }
       .metrics {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        display: none;
       }
       .actions {
         position: fixed;
@@ -1212,17 +1229,20 @@
         bottom: 0;
         z-index: 25;
         display: grid;
-        grid-template-columns: 1fr auto;
+        grid-template-columns: 1fr 48px;
         gap: 8px;
         margin: 0;
-        padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+        padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
         border-top: 1px solid var(--line-soft);
         background: rgba(16,18,20,.96);
         backdrop-filter: blur(18px);
       }
       .add {
-        min-height: 46px;
+        min-height: 50px;
         justify-content: center;
+        border-color: rgba(69, 212, 131, .8);
+        background: linear-gradient(180deg, #48d983, #209f59);
+        box-shadow: 0 14px 30px rgba(69, 212, 131, .18);
       }
       .switch {
         grid-column: 1 / -1;
@@ -1232,8 +1252,11 @@
       }
       .switch button {
         min-height: 42px;
+        overflow: hidden;
         padding: 7px 4px;
-        font-size: 12px;
+        font-size: 11px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       #openDialog {
         grid-column: 1;
@@ -1262,6 +1285,209 @@
       }
       .image-picker-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .learning {
+        display: none;
+      }
+      main {
+        width: 100%;
+        padding: 12px 12px 22px;
+      }
+      .mobile-board-tabs {
+        position: sticky;
+        top: 0;
+        z-index: 8;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 5px;
+        margin: -2px -2px 10px;
+        padding: 8px 2px;
+        background: rgba(16,18,20,.96);
+        backdrop-filter: blur(12px);
+      }
+      .mobile-board-tabs button {
+        min-height: 48px;
+        overflow: hidden;
+        padding: 7px 4px;
+        color: var(--muted);
+        font-size: 12px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .mobile-board-tabs button.active {
+        border-color: var(--yellow);
+        background: var(--yellow);
+        color: #111;
+      }
+      .mobile-board-tabs span {
+        display: inline-grid;
+        place-items: center;
+        min-width: 20px;
+        height: 20px;
+        margin-left: 4px;
+        border-radius: 999px;
+        background: rgba(0,0,0,.18);
+        font-size: 11px;
+      }
+      .board {
+        display: none;
+        min-height: 0;
+        overflow: visible;
+        padding-bottom: 0;
+      }
+      .mobile-task-list {
+        display: grid;
+        gap: 12px;
+      }
+      .mobile-timeline-list {
+        display: grid;
+        gap: 12px;
+      }
+      .mobile-timeline-item {
+        border: 1px solid rgba(255,255,255,.09);
+        border-left: 4px solid var(--green);
+        border-radius: var(--radius);
+        background: linear-gradient(180deg, rgba(var(--board-tint), .11), transparent 90px), linear-gradient(180deg, #252a32, #1c2026);
+        padding: 13px;
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
+      }
+      .mobile-timeline-item.tight { border-left-color: var(--orange); }
+      .mobile-timeline-item.critical, .mobile-timeline-item.late { border-left-color: var(--pink); }
+      .mobile-timeline-item h3 {
+        margin: 0;
+        font-size: 24px;
+        line-height: 1.04;
+      }
+      .mobile-timeline-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 850;
+      }
+      .mobile-timeline-meta span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .mobile-progress {
+        height: 10px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(255,255,255,.075);
+        margin-top: 12px;
+      }
+      .mobile-progress span {
+        display: block;
+        width: var(--progress);
+        height: 100%;
+        border-radius: inherit;
+        background: var(--green);
+      }
+      .mobile-timeline-item.tight .mobile-progress span { background: var(--orange); }
+      .mobile-timeline-item.critical .mobile-progress span,
+      .mobile-timeline-item.late .mobile-progress span { background: var(--pink); }
+      .mobile-task-list .empty {
+        min-height: 130px;
+        display: grid;
+        place-items: center;
+      }
+      .mobile-task-list .card {
+        width: 100%;
+        max-width: none;
+        border-left-width: 4px;
+        padding: 12px;
+        cursor: default;
+      }
+      .mobile-task-list .card[draggable="true"] {
+        -webkit-user-drag: none;
+      }
+      .mobile-task-list .card-title-row h3 {
+        font-size: 28px;
+        line-height: 1.03;
+      }
+      .mobile-task-list .cover-image {
+        max-height: 168px;
+      }
+      .mobile-task-list .card-focus {
+        grid-template-columns: minmax(0, 1fr) 92px;
+        gap: 10px;
+      }
+      .mobile-task-list .time-left {
+        min-height: 76px;
+        padding: 12px;
+      }
+      .mobile-task-list .time-left strong {
+        font-size: 34px;
+      }
+      .mobile-task-list .play-button {
+        width: 92px;
+        min-width: 92px;
+        min-height: 76px;
+      }
+      .mobile-task-list .card-subline {
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .mobile-task-list .deadline-pill {
+        margin-left: auto;
+      }
+      .mobile-task-list .details-toggle {
+        min-height: 42px;
+      }
+      .mobile-task-list .risk, .mobile-task-list .timer-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .mobile-task-list .timer {
+        min-height: 64px;
+      }
+      .mobile-task-list .split-actions {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+      .mobile-task-list .card-icon-button {
+        min-height: 54px;
+      }
+      .mobile-task-list .file-card {
+        align-items: stretch;
+      }
+      .mobile-task-list .file-info {
+        width: 100%;
+      }
+      .mobile-task-list .file-actions {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .timeline-panel, .analysis-panel {
+        border-radius: var(--radius);
+      }
+      .timeline-panel {
+        display: none;
+      }
+      .panel-head {
+        min-width: 760px;
+      }
+      .time-grid {
+        min-width: 760px;
+        grid-template-columns: 170px minmax(590px, 1fr);
+      }
+    }
+    @media (max-width: 420px) {
+      .mobile-board-tabs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .mobile-task-list .card-title-row h3 {
+        font-size: 24px;
+      }
+      .mobile-task-list .card-focus {
+        grid-template-columns: minmax(0, 1fr) 76px;
+      }
+      .mobile-task-list .play-button {
+        width: 76px;
+        min-width: 76px;
+      }
+      .mobile-task-list .time-left strong {
+        font-size: 30px;
       }
     }
   </style>
@@ -1450,6 +1676,7 @@
       ["approval", "Abnahme"],
       ["delivered", "Fertig"],
     ];
+    const MOBILE_QUERY = "(max-width: 700px)";
     const TIMER_LABELS = { preparation: "Vorbereitung", animation: "in Arbeit" };
     let selectedSlot = "17:45";
     const initialBoardPreferences = loadBoardPreferences();
@@ -1463,8 +1690,9 @@
 	    let stagedCoverImage = null;
 	    let coverCropImage = null;
 	    let coverCropFileName = "Titelbild.jpg";
-	    let galleryImages = [];
-	    let galleryIndex = 0;
+    let galleryImages = [];
+    let galleryIndex = 0;
+    let mobileColumn = "planning";
 	    let analysisQuery = "";
     let now = new Date();
     let warned = new Set();
@@ -1968,7 +2196,17 @@
       else renderBoard();
     }
     function renderBoard() {
-      document.getElementById("view").innerHTML = `<div class="board">${COLUMNS.map(([key, title]) => {
+      const counts = Object.fromEntries(COLUMNS.map(([key]) => [
+        key,
+        tasks.filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt && !task.archivedAt && task.workStatus === key).length,
+      ]));
+      const mobileTabs = `<div class="mobile-board-tabs" aria-label="Kanban-Spalte wählen">${COLUMNS.map(([key, title]) =>
+        `<button type="button" class="${mobileColumn === key ? "active" : ""}" data-mobile-column="${key}">${title}<span>${counts[key]}</span></button>`
+      ).join("")}</div>`;
+      const mobileTasks = tasks.filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt && !task.archivedAt && task.workStatus === mobileColumn)
+        .sort((a, b) => new Date(a.productionDeadline) - new Date(b.productionDeadline));
+      const mobileList = `<div class="mobile-task-list">${mobileTasks.length ? mobileTasks.map(renderCard).join("") : '<div class="empty">Leer</div>'}</div>`;
+      const desktopBoard = `<div class="board">${COLUMNS.map(([key, title]) => {
         const columnTasks = tasks.filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt && !task.archivedAt && task.workStatus === key)
           .sort((a, b) => new Date(a.productionDeadline) - new Date(b.productionDeadline));
         return `<section class="column" data-column="${key}">
@@ -1976,6 +2214,7 @@
           <div class="stack">${columnTasks.length ? columnTasks.map(renderCard).join("") : '<div class="empty">Leer</div>'}</div>
         </section>`;
       }).join("")}</div>`;
+      document.getElementById("view").innerHTML = `${mobileTabs}${mobileList}${desktopBoard}`;
     }
     function renderCard(task) {
       const remaining = Math.floor((new Date(task.productionDeadline).getTime() - now.getTime()) / 1000);
@@ -2059,6 +2298,26 @@
       const hours = Array.from({ length: timelineEnd - timelineStart + 1 }, (_, index) => timelineStart + index);
       const totalMinutes = (timelineEnd - timelineStart) * 60;
       const nowPosition = ((now.getHours() * 60 + now.getMinutes() - timelineStart * 60) / totalMinutes) * 100;
+      const mobileRows = activeTasks()
+        .sort((a, b) => new Date(a.productionDeadline) - new Date(b.productionDeadline))
+        .map(task => {
+          const state = risk(task);
+          const created = new Date(task.createdAt).getTime();
+          const deadline = new Date(task.productionDeadline).getTime();
+          const progress = Math.max(4, Math.min(100, ((now.getTime() - created) / Math.max(deadline - created, 1)) * 100));
+          const remaining = Math.max(0, Math.floor((deadline - now.getTime()) / 1000));
+          return `<article class="mobile-timeline-item ${state}">
+            <h3>${escapeHtml(task.title)}</h3>
+            ${task.coverImage ? `<button class="cover-image" data-action="view-file" data-id="${task.id}" data-file-id="${task.coverImage.id}" data-kind="cover" title="Titelbild ansehen" aria-label="Titelbild ansehen"><img src="${escapeHtml(task.coverImage.url)}" alt=""></button>` : ""}
+            <div class="mobile-timeline-meta">
+              <span title="Sendung" aria-label="Sendung">${icon("screen")}${task.sendSlot}</span>
+              <span title="Deadline" aria-label="Deadline">${icon("alarm")}${formatClock(task.productionDeadline)}</span>
+              <span title="Restzeit" aria-label="Restzeit">${icon("clock")}${formatDuration(remaining)}</span>
+              <span title="Erfasste Zeit" aria-label="Erfasste Zeit">${icon("stopwatch")}${formatDuration(sumSessions(task))}</span>
+            </div>
+            <div class="mobile-progress" aria-hidden="true" style="--progress:${progress}%"><span></span></div>
+          </article>`;
+        }).join("");
       const rows = activeTasks().map(task => {
         const deadline = new Date(task.productionDeadline);
         const deadlineMinutes = deadline.getHours() * 60 + deadline.getMinutes();
@@ -2080,7 +2339,8 @@
           </div>
         </div>`;
       }).join("");
-      document.getElementById("view").innerHTML = `<div class="timeline-panel">
+      document.getElementById("view").innerHTML = `<div class="mobile-timeline-list">${mobileRows || '<div class="empty">Keine aktiven Animationen.</div>'}</div>
+      <div class="timeline-panel">
         <div class="panel-head"><h2>Timeline</h2><span>Aktive Animationen</span></div>
         <div class="time-grid">
           <div class="time-label"></div>
@@ -2423,6 +2683,7 @@
 	      }
 	    }
     function moveTask(id, status) {
+      mobileColumn = status;
       tasks = tasks.map(task => {
         if (task.id !== id) return task;
         const closed = closeTimer(task);
@@ -2508,7 +2769,8 @@
 	        alert(error.message);
 	      }
 	    }
-	    function startTimer(id, kind) {
+    function startTimer(id, kind) {
+      mobileColumn = kind === "preparation" ? "planning" : "animation";
       tasks = tasks.map(task => {
         if (task.id !== id) return task;
         if (task.activeTimer && task.activeTimer.kind === kind) {
@@ -2806,8 +3068,14 @@
       selectedSlot = button.dataset.slot;
       renderSlots();
     });
-	    document.getElementById("view").addEventListener("click", event => {
-	      const colorButton = event.target.closest("button[data-board-color]");
+    document.getElementById("view").addEventListener("click", event => {
+      const mobileColumnButton = event.target.closest("button[data-mobile-column]");
+      if (mobileColumnButton) {
+        mobileColumn = mobileColumnButton.dataset.mobileColumn;
+        render();
+        return;
+      }
+      const colorButton = event.target.closest("button[data-board-color]");
 	      if (colorButton) {
 	        boardColors.board = colorButton.dataset.boardColor;
 	        saveBoardPreferences();

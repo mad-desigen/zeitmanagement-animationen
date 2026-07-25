@@ -156,6 +156,12 @@ test("supports server-backed file uploads and cropped title images", async () =>
   assert.match(standaloneApp, /grid-auto-columns:\s*minmax\(390px, 1fr\)/);
   assert.match(standaloneApp, /grid-auto-columns:\s*minmax\(0, calc\(100vw - 28px\)\)/);
   assert.match(standaloneApp, /grid-template-columns:\s*minmax\(0, 1fr\) minmax\(74px, auto\)/);
+  assert.match(standaloneApp, /class="mobile-board-tabs"/);
+  assert.match(standaloneApp, /class="mobile-task-list"/);
+  assert.match(standaloneApp, /class="mobile-timeline-list"/);
+  assert.match(standaloneApp, /data-mobile-column/);
+  assert.match(standaloneApp, /\.board\s*\{\s*display: none;/);
+  assert.match(standaloneApp, /\.timeline-panel\s*\{\s*display: none;/);
   assert.match(standaloneApp, /download="\$\{escapeHtml\(file\.name\)\}"/);
   assert.match(standaloneApp, /async function deleteTaskFile/);
   assert.match(api, /CREATE TABLE IF NOT EXISTS uploaded_files/);
@@ -167,8 +173,14 @@ test("supports server-backed file uploads and cropped title images", async () =>
   assert.match(api, /\$action === 'upload'/);
   assert.match(api, /\$action === 'file'/);
   assert.match(api, /\$action === 'deleteFile'/);
+  assert.match(standaloneApp, /rel="apple-touch-icon" href="apple-touch-icon\.png"/);
+  assert.match(manifest, /"src": "apple-touch-icon\.png"/);
+  assert.match(manifest, /"src": "icon-512\.png"/);
+  assert.match(manifest, /"src": "icon\.svg"/);
   assert.match(manifest, /"display": "standalone"/);
   assert.match(manifest, /"start_url": "\.\/"/);
   assert.match(serviceWorker, /CACHE_NAME/);
   assert.match(serviceWorker, /api\.php/);
+  assert.match(serviceWorker, /icon-512\.png/);
+  assert.match(serviceWorker, /apple-touch-icon\.png/);
 });

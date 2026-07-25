@@ -1,6 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#101214"/>
-  <path fill="#ffd84d" d="M112 132h288v54H112z"/>
-  <path fill="#45d483" d="M112 229h210v54H112z"/>
-  <path fill="#2388ff" d="M112 326h150v54H112z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Zeitmanagement">
+  <defs>
+    <linearGradient id="bg" x1="96" y1="48" x2="416" y2="464" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#222832"/>
+      <stop offset="1" stop-color="#101214"/>
+    </linearGradient>
+    <linearGradient id="green" x1="176" y1="144" x2="352" y2="392" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4ee38b"/>
+      <stop offset="1" stop-color="#209f59"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="286" r="132" fill="#15191f" stroke="#ffd84d" stroke-width="30"/>
+  <path d="M256 286V196" fill="none" stroke="#f4f6f8" stroke-width="28" stroke-linecap="round"/>
+  <path d="M256 286l70 44" fill="none" stroke="#f4f6f8" stroke-width="28" stroke-linecap="round"/>
+  <path d="M176 134h160" fill="none" stroke="#f4f6f8" stroke-width="32" stroke-linecap="round"/>
+  <path d="M256 98v38" fill="none" stroke="#f4f6f8" stroke-width="34" stroke-linecap="round"/>
+  <path d="M141 186l-34-34" fill="none" stroke="#4aa3ff" stroke-width="28" stroke-linecap="round"/>
+  <path d="M371 186l34-34" fill="none" stroke="#4aa3ff" stroke-width="28" stroke-linecap="round"/>
+  <path d="M168 372a132 132 0 0 0 176 0" fill="none" stroke="url(#green)" stroke-width="34" stroke-linecap="round"/>
+  <circle cx="256" cy="286" r="16" fill="#f4f6f8"/>
 </svg>
