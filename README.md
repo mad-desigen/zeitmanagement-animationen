@@ -5,6 +5,13 @@ Timeline, Vorbereitungstimer, Arbeits-Timer, Archiv und Analyse.
 
 ## Start
 
+### Ohne Installation
+
+Die Datei `index.html` kann direkt im Browser geöffnet werden. Das ist die
+einfachste Variante für Firmenrechner ohne Administrationsrechte.
+
+### Entwicklungsmodus
+
 ```bash
 npm install
 npm run dev

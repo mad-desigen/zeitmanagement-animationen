@@ -1,0 +1,1023 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zeitmanagement</title>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg: #151515;
+      --panel: #202020;
+      --panel-2: #252525;
+      --line: #3a3a3a;
+      --text: #f4f4f2;
+      --muted: #a8aaa6;
+      --pink: #f04f78;
+      --blue: #2f80ff;
+      --yellow: #ffd84d;
+      --green: #38c172;
+      --orange: #e4b84d;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    button, input, select, textarea { font: inherit; }
+    button {
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 800;
+      padding: 8px 12px;
+    }
+    button:hover { transform: translateY(-1px); }
+    header {
+      border-bottom: 1px solid #343434;
+      background: var(--panel);
+      padding: 20px 28px;
+    }
+    .header-row {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin: 0;
+      color: var(--text);
+      font-size: clamp(28px, 5vw, 52px);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 10px;
+    }
+    .metric {
+      min-width: 120px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #2a2a2a;
+      padding: 10px 12px;
+    }
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .metric strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 20px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      max-width: 1600px;
+      margin: 18px auto 0;
+    }
+    .add {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      border-color: var(--blue);
+      background: var(--blue);
+      color: white;
+    }
+    .add span {
+      font-size: 25px;
+      line-height: 0;
+      font-weight: 400;
+    }
+    .switch {
+      display: inline-grid;
+      grid-template-columns: repeat(3, minmax(105px, 1fr));
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+    }
+    .switch button {
+      border: 0;
+      border-right: 1px solid var(--line);
+      border-radius: 0;
+      background: transparent;
+      color: #c9c9c4;
+    }
+    .switch button:last-child { border-right: 0; }
+    .switch button.active {
+      background: var(--yellow);
+      color: #111;
+    }
+    main {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 20px 28px 34px;
+    }
+    .learning {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .learning > div, .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #1f1f1f;
+      padding: 14px;
+    }
+    .learning span {
+      color: var(--muted);
+      font-weight: 800;
+    }
+    .learning strong { float: right; }
+    .board {
+      display: grid;
+      grid-auto-columns: minmax(270px, 1fr);
+      grid-auto-flow: column;
+      gap: 12px;
+      min-height: calc(100vh - 220px);
+      overflow-x: auto;
+    }
+    .column {
+      border: 1px solid #353535;
+      border-radius: 8px;
+      background: #1b1b1b;
+      min-width: 270px;
+    }
+    .column-head {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #333;
+      border-radius: 8px 8px 0 0;
+      background: #252525;
+      padding: 12px;
+    }
+    .column-head h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 900;
+    }
+    .column-head span {
+      border-radius: 999px;
+      background: #343434;
+      color: #d9d9d3;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 4px 8px;
+    }
+    .stack {
+      display: grid;
+      align-content: start;
+      gap: 9px;
+      min-height: 520px;
+      padding: 10px;
+    }
+    .empty {
+      border: 1px dashed #494949;
+      border-radius: 8px;
+      color: #8f918e;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 18px;
+      text-align: center;
+    }
+    .card {
+      border: 1px solid #353535;
+      border-left: 6px solid var(--green);
+      border-radius: 8px;
+      background: #1f1f1f;
+      cursor: grab;
+      padding: 10px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+    }
+    .card.tight { border-left-color: var(--orange); }
+    .card.critical, .card.late { border-left-color: var(--pink); }
+    .card.done { border-left-color: #666; }
+    .kicker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+    .kicker span {
+      border-radius: 999px;
+      background: #343434;
+      color: #d9d9d3;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 7px;
+    }
+    .card h3 {
+      margin: 9px 0 4px;
+      font-size: 18px;
+      line-height: 1.15;
+    }
+    .card p {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+    .risk, .timer-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+      margin-top: 12px;
+    }
+    .risk div, .timer {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #252525;
+      padding: 8px;
+    }
+    .risk span, .timer span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .risk strong, .timer strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 17px;
+    }
+    .timer {
+      min-height: 54px;
+      text-align: left;
+    }
+    .timer.active {
+      border-color: var(--green);
+      background: #153523;
+    }
+    .wide-button {
+      width: 100%;
+      margin-top: 10px;
+    }
+    .stop { background: #2b3633; }
+    .folder { background: #333; }
+    .note {
+      border-left: 3px solid var(--orange);
+      margin-top: 12px;
+      padding-left: 10px;
+    }
+    .timeline-panel, .analysis-panel {
+      overflow-x: auto;
+      border: 1px solid #353535;
+      border-radius: 8px;
+      background: #1f1f1f;
+    }
+    .panel-head {
+      display: flex;
+      min-width: 920px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      border-bottom: 1px solid #333;
+      padding: 14px 16px;
+    }
+    .panel-head h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+    .time-grid {
+      display: grid;
+      min-width: 920px;
+      grid-template-columns: 220px minmax(680px, 1fr);
+    }
+    .time-label {
+      min-height: 58px;
+      border-right: 1px solid #333;
+      border-bottom: 1px solid #333;
+      background: #252525;
+      padding: 10px 12px;
+    }
+    .time-label strong {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .time-label span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 3px;
+    }
+    .scale {
+      display: grid;
+      min-height: 44px;
+      grid-template-columns: repeat(11, minmax(60px, 1fr));
+      border-bottom: 1px solid #333;
+      background: linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px);
+      background-size: 10% 100%;
+    }
+    .scale span {
+      border-left: 1px solid #333;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      padding: 12px 8px;
+    }
+    .timeline-row { display: contents; }
+    .track {
+      position: relative;
+      min-height: 58px;
+      border-bottom: 1px solid #333;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.04) 0, rgba(255,255,255,.04) 8.33%, transparent 8.33%, transparent 16.66%);
+      background-size: 10% 100%, auto;
+    }
+    .bar {
+      position: absolute;
+      top: 13px;
+      min-width: 58px;
+      height: 30px;
+      overflow: hidden;
+      border-radius: 6px;
+      color: #07120c;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 30px;
+      padding: 0 10px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      background: var(--green);
+    }
+    .bar.tight { background: var(--orange); color: #1f1603; }
+    .bar.critical, .bar.late { background: var(--pink); color: white; }
+    .pin {
+      position: absolute;
+      z-index: 2;
+      top: 4px;
+      border-left: 2px solid var(--text);
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 900;
+      padding-left: 5px;
+      white-space: nowrap;
+    }
+    .pin.send {
+      top: auto;
+      bottom: 4px;
+      border-left-color: #58b8ff;
+      color: #9dd7ff;
+    }
+    .now {
+      position: absolute;
+      inset: 0 auto 0 0;
+      z-index: 1;
+      width: 2px;
+      background: var(--text);
+    }
+    .analysis-summary {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .table { min-width: 980px; }
+    .row {
+      display: grid;
+      grid-template-columns: minmax(220px, 1.4fr) repeat(6, minmax(110px, 1fr));
+      gap: 12px;
+      align-items: center;
+      border-bottom: 1px solid #333;
+      padding: 11px 16px;
+    }
+    .row.head span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .row small {
+      display: block;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0,0,0,.68);
+      padding: 20px;
+    }
+    .modal.open { display: grid; }
+    .dialog {
+      width: min(620px, 100%);
+      border: 1px solid #3f3f3f;
+      border-radius: 8px;
+      background: #242424;
+      padding: 18px;
+      box-shadow: 0 24px 70px rgba(0,0,0,.28);
+    }
+    .dialog-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .dialog h2 { margin: 0; }
+    .form {
+      display: grid;
+      gap: 12px;
+    }
+    .form label {
+      display: grid;
+      gap: 6px;
+      color: #c8c8c2;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .form input, .form select, .form textarea {
+      width: 100%;
+      border: 1px solid #444;
+      border-radius: 8px;
+      background: #191919;
+      color: var(--text);
+      padding: 10px 11px;
+      outline: none;
+    }
+    .form input:focus, .form select:focus, .form textarea:focus {
+      border-color: var(--pink);
+      box-shadow: 0 0 0 3px rgba(240,79,120,.2);
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .slots {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .slot.active {
+      border-color: var(--pink);
+      background: #4a2030;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .primary {
+      border-color: var(--pink);
+      background: var(--pink);
+      color: white;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      margin: 12px 0 0;
+    }
+    @media (max-width: 900px) {
+      .header-row { align-items: stretch; flex-direction: column; }
+      .metrics, .learning, .analysis-summary, .grid-2 { grid-template-columns: 1fr; }
+      .switch { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-row">
+      <h1>Zeitmanagement</h1>
+      <div class="metrics" id="metrics"></div>
+    </div>
+    <div class="actions">
+      <button class="add" id="openDialog"><span>+</span> Aufgabe hinzufügen</button>
+      <div class="switch" aria-label="Ansicht wechseln">
+        <button class="active" data-view="board">Kanban</button>
+        <button data-view="timeline">Timeline</button>
+        <button data-view="analysis">Analyse</button>
+      </div>
+      <button id="notify">Benachrichtigungen aktivieren</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="learning" id="learning"></section>
+    <section id="view"></section>
+  </main>
+
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Aufgabe hinzufügen">
+    <div class="dialog">
+      <div class="dialog-head">
+        <h2>Aufgabe hinzufügen</h2>
+        <button id="closeDialog" aria-label="Schließen">x</button>
+      </div>
+      <div class="form">
+        <label>Aufgabe <input id="title" value="Animation"></label>
+        <div class="grid-2">
+          <label>Typ
+            <select id="projectType">
+              <option>ANIM</option>
+              <option>INFO</option>
+              <option>KARTE</option>
+            </select>
+          </label>
+          <label>Kürzel <input id="abbreviation"></label>
+        </div>
+        <div class="grid-2">
+          <label>Auftrag von <input id="requester"></label>
+          <label>Quelle
+            <select id="source">
+              <option>Formular</option>
+              <option>Mail</option>
+              <option>Mündlich</option>
+              <option>Teams</option>
+              <option>Sonstiges</option>
+            </select>
+          </label>
+        </div>
+        <label>Sendezeit
+          <div class="slots" id="slots"></div>
+        </label>
+        <div class="grid-2">
+          <label>Deadline-Datum <input type="date" id="deadlineDate"></label>
+          <label>Deadline-Zeit <input type="time" id="deadlineTime" value="17:15"></label>
+        </div>
+        <label>Notiz <textarea id="description" rows="4"></textarea></label>
+      </div>
+      <p class="hint">Die Daten werden lokal in diesem Browser gespeichert. Keine Anmeldung, keine Installation.</p>
+      <div class="modal-actions">
+        <button id="cancel">Abbrechen</button>
+        <button class="primary" id="create">Animation anlegen</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "zeitmanagement-tool-v3";
+    const SEND_SLOTS = ["17:45", "19:30", "21:45"];
+    const COLUMNS = [
+      ["planning", "in Planung"],
+      ["animation", "in Arbeit"],
+      ["approval", "Abnahme"],
+      ["delivered", "Fertig"],
+    ];
+    const TIMER_LABELS = { preparation: "Vorbereitung", animation: "in Arbeit" };
+    const DAY_START = 12;
+    const DAY_END = 22;
+    let selectedSlot = "17:45";
+    let view = "board";
+    let now = new Date();
+    let warned = new Set();
+    let lastArchiveDate = toLocalDate(new Date());
+    let tasks = archiveCompletedTasks(loadTasks(), now);
+
+    function uid() {
+      return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+    }
+    function toLocalDate(date) {
+      const offset = date.getTimezoneOffset() * 60000;
+      return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+    }
+    function localDateFromIso(value) {
+      return toLocalDate(new Date(value));
+    }
+    function combineDeadline(date, time) {
+      return date + "T" + (time || "17:15");
+    }
+    function secondsBetween(start, end = new Date().toISOString()) {
+      return Math.max(0, Math.floor((new Date(end).getTime() - new Date(start).getTime()) / 1000));
+    }
+    function formatDuration(seconds) {
+      const minutes = Math.round(seconds / 60);
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      return h === 0 ? m + "m" : h + "h " + String(m).padStart(2, "0") + "m";
+    }
+    function formatClock(value) {
+      return new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+    }
+    function formatDateTime(value) {
+      return new Intl.DateTimeFormat("de-DE", {
+        day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit"
+      }).format(new Date(value));
+    }
+    function escapeHtml(value) {
+      return String(value || "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+      }[char]));
+    }
+    function sanitizeFolderName(name) {
+      return (name || "Animationsprojekt").trim()
+        .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")
+        .replace(/\s+/g, " ")
+        .slice(0, 80) || "Animationsprojekt";
+    }
+    function getProjectFolderName(task) {
+      return sanitizeFolderName(`AKT ${task.productionDeadline.slice(0, 10)} ${task.projectType} ${task.abbreviation || task.title}`);
+    }
+    function normalizeStatus(status) {
+      if (status === "briefing" || status === "preparation") return "planning";
+      if (status === "correction" || status === "render") return "approval";
+      return ["planning", "animation", "approval", "delivered"].includes(status) ? status : "planning";
+    }
+    function normalizeTask(task) {
+      return {
+        id: task.id || uid(),
+        title: task.title || "Animation",
+        projectType: task.projectType || "ANIM",
+        abbreviation: task.abbreviation || "",
+        source: task.source || "Formular",
+        requester: task.requester || "",
+        description: task.description || "",
+        sendSlot: task.sendSlot || "17:45",
+        productionDeadline: task.productionDeadline || combineDeadline(toLocalDate(new Date()), "17:15"),
+        workStatus: normalizeStatus(task.workStatus),
+        activeTimer: task.activeTimer || null,
+        sessions: task.sessions || [],
+        createdAt: task.createdAt || new Date().toISOString(),
+        completedAt: task.completedAt || null,
+        archivedAt: task.archivedAt || null,
+      };
+    }
+    function loadTasks() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("zeitmanagement-tool-v2") || localStorage.getItem("zeitmanagement-tool-v1");
+        return raw ? JSON.parse(raw).map(normalizeTask) : [];
+      } catch {
+        return [];
+      }
+    }
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    }
+    function archiveCompletedTasks(list, date = new Date()) {
+      const today = toLocalDate(date);
+      return list.map(task => {
+        if (task.archivedAt || !task.completedAt || localDateFromIso(task.completedAt) >= today) return task;
+        return { ...task, archivedAt: date.toISOString() };
+      });
+    }
+    function sumSessions(task, kind) {
+      let seconds = (task.sessions || [])
+        .filter(session => !kind || session.kind === kind)
+        .reduce((sum, session) => sum + session.seconds, 0);
+      if (task.activeTimer && (!kind || task.activeTimer.kind === kind)) {
+        seconds += secondsBetween(task.activeTimer.startedAt);
+      }
+      return seconds;
+    }
+    function average(list, kind) {
+      const values = list.map(task => sumSessions(task, kind)).filter(Boolean);
+      if (!values.length) return "-";
+      return formatDuration(values.reduce((sum, value) => sum + value, 0) / values.length);
+    }
+    function risk(task) {
+      if (task.completedAt || task.workStatus === "delivered") return "done";
+      const remaining = Math.floor((new Date(task.productionDeadline).getTime() - now.getTime()) / 1000);
+      if (remaining <= 0) return "late";
+      if (remaining <= 15 * 60) return "critical";
+      if (remaining <= 30 * 60) return "tight";
+      return "ok";
+    }
+    function riskLabel(value) {
+      return { done: "Fertig", late: "Überfällig", critical: "Kritisch", tight: "Knapp", ok: "Im Plan" }[value] || "Im Plan";
+    }
+    function closeTimer(task) {
+      if (!task.activeTimer) return task;
+      const endedAt = new Date().toISOString();
+      return {
+        ...task,
+        activeTimer: null,
+        sessions: [...task.sessions, {
+          id: uid(),
+          kind: task.activeTimer.kind,
+          startedAt: task.activeTimer.startedAt,
+          endedAt,
+          seconds: secondsBetween(task.activeTimer.startedAt, endedAt),
+        }],
+      };
+    }
+    function activeTasks() {
+      return tasks
+        .filter(task => !task.archivedAt && !task.completedAt && task.workStatus !== "delivered")
+        .sort((a, b) => new Date(a.productionDeadline) - new Date(b.productionDeadline));
+    }
+    function completedTasks() {
+      return tasks.filter(task => !task.archivedAt && (task.completedAt || task.workStatus === "delivered"));
+    }
+    function archivedTasks() {
+      return tasks.filter(task => task.archivedAt);
+    }
+    function renderMetric(label, value) {
+      return `<div class="metric"><span>${label}</span><strong>${value}</strong></div>`;
+    }
+    function render() {
+      const active = activeTasks();
+      const completed = completedTasks();
+      const today = toLocalDate(now);
+      const todaysTasks = tasks.filter(task => localDateFromIso(task.createdAt) === today);
+      document.getElementById("metrics").innerHTML = [
+        renderMetric("Aktive Jobs", active.length),
+        renderMetric("Heute erfasst", formatDuration(todaysTasks.reduce((sum, task) => sum + sumSessions(task), 0))),
+        renderMetric("Vorbereitung", formatDuration(todaysTasks.reduce((sum, task) => sum + sumSessions(task, "preparation"), 0))),
+        renderMetric("in Arbeit", formatDuration(todaysTasks.reduce((sum, task) => sum + sumSessions(task, "animation"), 0))),
+      ].join("");
+      document.getElementById("learning").innerHTML = `
+        <div><span>Durchschnitt Vorbereitung</span><strong>${average(completed.concat(archivedTasks()), "preparation")}</strong></div>
+        <div><span>Durchschnitt in Arbeit</span><strong>${average(completed.concat(archivedTasks()), "animation")}</strong></div>
+        <div><span>Abgeschlossene Jobs</span><strong>${completed.length + archivedTasks().length}</strong></div>
+      `;
+      document.querySelectorAll(".switch button").forEach(button => button.classList.toggle("active", button.dataset.view === view));
+      if (view === "timeline") renderTimeline();
+      else if (view === "analysis") renderAnalysis();
+      else renderBoard();
+    }
+    function renderBoard() {
+      document.getElementById("view").innerHTML = `<div class="board">${COLUMNS.map(([key, title]) => {
+        const columnTasks = tasks.filter(task => !task.archivedAt && task.workStatus === key)
+          .sort((a, b) => new Date(a.productionDeadline) - new Date(b.productionDeadline));
+        return `<section class="column" data-column="${key}">
+          <div class="column-head"><h2>${title}</h2><span>${columnTasks.length}</span></div>
+          <div class="stack">${columnTasks.length ? columnTasks.map(renderCard).join("") : '<div class="empty">Leer</div>'}</div>
+        </section>`;
+      }).join("")}</div>`;
+    }
+    function renderCard(task) {
+      const remaining = Math.floor((new Date(task.productionDeadline).getTime() - now.getTime()) / 1000);
+      const state = risk(task);
+      return `<article class="card ${state}" draggable="true" data-id="${task.id}">
+        <div class="kicker">
+          <span>${escapeHtml(task.source)}</span><span>${escapeHtml(task.projectType)}</span>
+          ${task.abbreviation ? `<span>${escapeHtml(task.abbreviation)}</span>` : ""}
+          <span>Sendung ${task.sendSlot}</span><span>Deadline ${formatClock(task.productionDeadline)}</span>
+        </div>
+        <h3>${escapeHtml(task.title)}</h3>
+        ${task.requester ? `<p>${escapeHtml(task.requester)}</p>` : ""}
+        <div class="risk">
+          <div><span>${riskLabel(state)}</span><strong>${remaining > 0 ? formatDuration(remaining) : "0m"}</strong></div>
+          <div><span>Erfasst</span><strong>${formatDuration(sumSessions(task))}</strong></div>
+        </div>
+        <div class="timer-row">
+          ${["preparation", "animation"].map(kind => {
+            const active = task.activeTimer && task.activeTimer.kind === kind;
+            return `<button class="timer ${active ? "active" : ""}" data-action="timer" data-kind="${kind}" data-id="${task.id}">
+              <span>${TIMER_LABELS[kind]}</span><strong>${formatDuration(sumSessions(task, kind))}</strong>
+            </button>`;
+          }).join("")}
+        </div>
+        ${task.activeTimer ? `<button class="wide-button stop" data-action="stop" data-id="${task.id}">Timer stoppen</button>` : ""}
+        <button class="wide-button folder" data-action="folder" data-id="${task.id}">Projektordner herunterladen</button>
+        ${task.description ? `<p class="note">${escapeHtml(task.description)}</p>` : ""}
+      </article>`;
+    }
+    function renderTimeline() {
+      const hours = Array.from({ length: DAY_END - DAY_START + 1 }, (_, index) => DAY_START + index);
+      const totalMinutes = (DAY_END - DAY_START) * 60;
+      const nowPosition = ((now.getHours() * 60 + now.getMinutes() - DAY_START * 60) / totalMinutes) * 100;
+      const rows = activeTasks().map(task => {
+        const deadline = new Date(task.productionDeadline);
+        const deadlineMinutes = deadline.getHours() * 60 + deadline.getMinutes();
+        const created = new Date(task.createdAt);
+        const createdMinutes = created.getHours() * 60 + created.getMinutes();
+        const startMinutes = Math.max(DAY_START * 60, Math.min(createdMinutes, deadlineMinutes));
+        const left = ((startMinutes - DAY_START * 60) / totalMinutes) * 100;
+        const width = ((deadlineMinutes - startMinutes) / totalMinutes) * 100;
+        const [sendHour, sendMinute] = task.sendSlot.split(":").map(Number);
+        const sendLeft = (((sendHour * 60 + sendMinute) - DAY_START * 60) / totalMinutes) * 100;
+        const deadlineLeft = ((deadlineMinutes - DAY_START * 60) / totalMinutes) * 100;
+        const state = risk(task);
+        return `<div class="timeline-row">
+          <div class="time-label"><strong>${escapeHtml(task.title)}</strong><span>${formatDuration(sumSessions(task))} erfasst</span></div>
+          <div class="track">
+            <div class="bar ${state}" style="left:${left}%;width:${Math.max(width, 8)}%">${riskLabel(state)}</div>
+            <span class="pin" style="left:${deadlineLeft}%">Deadline ${formatClock(task.productionDeadline)}</span>
+            <span class="pin send" style="left:${sendLeft}%">Sendung ${task.sendSlot}</span>
+            ${nowPosition >= 0 && nowPosition <= 100 ? `<span class="now" style="left:${nowPosition}%"></span>` : ""}
+          </div>
+        </div>`;
+      }).join("");
+      document.getElementById("view").innerHTML = `<div class="timeline-panel">
+        <div class="panel-head"><h2>Timeline</h2><span>Aktive Animationen</span></div>
+        <div class="time-grid">
+          <div class="time-label"></div>
+          <div class="scale">${hours.map(hour => `<span>${hour}:00</span>`).join("")}</div>
+          ${rows || '<div class="time-label"></div><div class="track"><div class="empty">Keine aktiven Animationen.</div></div>'}
+        </div>
+      </div>`;
+    }
+    function renderAnalysis() {
+      const finished = completedTasks().concat(archivedTasks()).sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt));
+      const today = toLocalDate(now);
+      const finishedToday = finished.filter(task => task.completedAt && localDateFromIso(task.completedAt) === today);
+      const totalWorked = finished.reduce((sum, task) => sum + sumSessions(task), 0);
+      const rows = finished.map(task => {
+        const prep = sumSessions(task, "preparation");
+        const animation = sumSessions(task, "animation");
+        return `<div class="row">
+          <span><strong>${escapeHtml(task.title)}</strong><small>${escapeHtml(task.abbreviation || task.projectType)}</small></span>
+          <span>${formatDateTime(task.productionDeadline)}</span>
+          <span>${task.sendSlot}</span>
+          <span>${formatDuration(prep)}</span>
+          <span>${formatDuration(animation)}</span>
+          <span>${formatDuration(prep + animation)}</span>
+          <span>${task.archivedAt ? "Archiv" : "Heute fertig"}</span>
+        </div>`;
+      }).join("");
+      document.getElementById("view").innerHTML = `
+        <section class="analysis-summary">
+          ${renderMetric("Aktiv", activeTasks().length)}
+          ${renderMetric("Heute fertig", finishedToday.length)}
+          ${renderMetric("Archiviert", archivedTasks().length)}
+          ${renderMetric("Gesamt erfasst", formatDuration(totalWorked))}
+          ${renderMetric("Ø Vorbereitung", average(finished, "preparation"))}
+          ${renderMetric("Ø in Arbeit", average(finished, "animation"))}
+        </section>
+        <section class="analysis-panel">
+          <div class="panel-head"><h2>Archiv und Auswertung</h2><span>${finished.length} abgeschlossene Animationen</span></div>
+          ${finished.length ? `<div class="table">
+            <div class="row head"><span>Animation</span><span>Deadline</span><span>Sendung</span><span>Vorbereitung</span><span>in Arbeit</span><span>Gesamt</span><span>Status</span></div>
+            ${rows}
+          </div>` : '<div class="empty">Noch keine fertigen Animationen im Archiv.</div>'}
+        </section>`;
+    }
+    function openDialog() {
+      const deadline = new Date();
+      deadline.setHours(17, 15, 0, 0);
+      document.getElementById("deadlineDate").value = toLocalDate(deadline);
+      document.getElementById("deadlineTime").value = "17:15";
+      document.getElementById("modal").classList.add("open");
+      renderSlots();
+    }
+    function closeDialog() {
+      document.getElementById("modal").classList.remove("open");
+    }
+    function renderSlots() {
+      document.getElementById("slots").innerHTML = SEND_SLOTS.map(slot =>
+        `<button type="button" class="slot ${selectedSlot === slot ? "active" : ""}" data-slot="${slot}">${slot}</button>`
+      ).join("");
+    }
+    function createTask() {
+      const title = document.getElementById("title").value.trim() || "Animation";
+      tasks.unshift({
+        id: uid(),
+        title,
+        projectType: document.getElementById("projectType").value,
+        abbreviation: document.getElementById("abbreviation").value.trim().toUpperCase(),
+        source: document.getElementById("source").value,
+        requester: document.getElementById("requester").value.trim(),
+        description: document.getElementById("description").value.trim(),
+        sendSlot: selectedSlot,
+        productionDeadline: combineDeadline(document.getElementById("deadlineDate").value, document.getElementById("deadlineTime").value),
+        workStatus: "planning",
+        activeTimer: null,
+        sessions: [],
+        createdAt: new Date().toISOString(),
+        completedAt: null,
+        archivedAt: null,
+      });
+      save();
+      closeDialog();
+      render();
+    }
+    function moveTask(id, status) {
+      tasks = tasks.map(task => {
+        if (task.id !== id) return task;
+        let next = task;
+        if (status === "approval" || status === "delivered") next = closeTimer(next);
+        return { ...next, workStatus: status, completedAt: status === "delivered" ? new Date().toISOString() : null };
+      });
+      save();
+      render();
+    }
+    function startTimer(id, kind) {
+      tasks = tasks.map(task => {
+        if (task.id !== id) return task;
+        const closed = closeTimer(task);
+        return { ...closed, activeTimer: { kind, startedAt: new Date().toISOString() }, workStatus: kind === "preparation" ? "planning" : "animation" };
+      });
+      save();
+      render();
+    }
+    function stopTimer(id) {
+      tasks = tasks.map(task => task.id === id ? closeTimer(task) : task);
+      save();
+      render();
+    }
+    async function downloadFolder(id) {
+      const task = tasks.find(item => item.id === id);
+      if (!task) return;
+      const folderName = getProjectFolderName(task);
+      if (window.JSZip) {
+        const zip = new JSZip();
+        const root = zip.folder(folderName);
+        root.folder("_MAT");
+        root.folder("_ERG");
+        const blob = await zip.generateAsync({ type: "blob" });
+        downloadBlob(blob, folderName + ".zip");
+        return;
+      }
+      const bat = `@echo off\r\nmkdir "${folderName}"\r\nmkdir "${folderName}\\_MAT"\r\nmkdir "${folderName}\\_ERG"\r\n`;
+      downloadBlob(new Blob([bat], { type: "text/plain" }), folderName + "_Ordner_anlegen.bat");
+    }
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+    async function enableNotifications() {
+      if (!("Notification" in window)) return alert("Dieser Browser unterstützt keine Benachrichtigungen.");
+      const permission = await Notification.requestPermission();
+      document.getElementById("notify").textContent = permission === "granted" ? "Benachrichtigungen aktiv" : "Benachrichtigungen aktivieren";
+    }
+    function warnCritical() {
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
+      activeTasks().forEach(task => {
+        const minutesLeft = Math.floor((new Date(task.productionDeadline).getTime() - now.getTime()) / 60000);
+        const state = risk(task);
+        const key = `${task.id}-${state}-${minutesLeft}`;
+        const shouldWarn = state === "critical" || minutesLeft === 30 || minutesLeft === 15 || minutesLeft === 5;
+        if (!shouldWarn || warned.has(key)) return;
+        warned.add(key);
+        new Notification(`Zeitkritisch: ${task.title}`, {
+          body: `${riskLabel(state)}. Deadline ${formatClock(task.productionDeadline)}, Sendung ${task.sendSlot}.`,
+        });
+      });
+    }
+
+    document.getElementById("openDialog").addEventListener("click", openDialog);
+    document.getElementById("closeDialog").addEventListener("click", closeDialog);
+    document.getElementById("cancel").addEventListener("click", closeDialog);
+    document.getElementById("create").addEventListener("click", createTask);
+    document.getElementById("notify").addEventListener("click", enableNotifications);
+    document.querySelector(".switch").addEventListener("click", event => {
+      const button = event.target.closest("button[data-view]");
+      if (!button) return;
+      view = button.dataset.view;
+      render();
+    });
+    document.getElementById("slots").addEventListener("click", event => {
+      const button = event.target.closest("button[data-slot]");
+      if (!button) return;
+      selectedSlot = button.dataset.slot;
+      renderSlots();
+    });
+    document.getElementById("view").addEventListener("click", event => {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+      if (button.dataset.action === "timer") startTimer(button.dataset.id, button.dataset.kind);
+      if (button.dataset.action === "stop") stopTimer(button.dataset.id);
+      if (button.dataset.action === "folder") downloadFolder(button.dataset.id);
+    });
+    document.getElementById("view").addEventListener("dragstart", event => {
+      const card = event.target.closest(".card");
+      if (card) event.dataTransfer.setData("text/task-id", card.dataset.id);
+    });
+    document.getElementById("view").addEventListener("dragover", event => {
+      if (event.target.closest(".column")) event.preventDefault();
+    });
+    document.getElementById("view").addEventListener("drop", event => {
+      const column = event.target.closest(".column");
+      if (!column) return;
+      event.preventDefault();
+      const id = event.dataTransfer.getData("text/task-id");
+      if (id) moveTask(id, column.dataset.column);
+    });
+    setInterval(() => {
+      now = new Date();
+      const today = toLocalDate(now);
+      if (today !== lastArchiveDate) {
+        lastArchiveDate = today;
+        tasks = archiveCompletedTasks(tasks, now);
+        save();
+      }
+      warnCritical();
+      render();
+    }, 1000);
+
+    renderSlots();
+    save();
+    render();
+  </script>
+</body>
+</html>
