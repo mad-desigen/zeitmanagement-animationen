@@ -35,10 +35,10 @@ test("server-renders the production timeline app shell", async () => {
   assert.match(html, /Aufgabe hinzufuegen/);
   assert.match(html, /Kanban/);
   assert.match(html, /Produktions-Timeline/);
-  assert.match(html, /Neu/);
+  assert.match(html, /in Planung/);
   assert.match(html, /in Arbeit/);
   assert.match(html, /Abnahme/);
-  assert.doesNotMatch(html, /Render\/Schnitt|Korrektur/);
+  assert.doesNotMatch(html, /<h2>Neu<\/h2>|<h2>Vorbereitung<\/h2>|Render\/Schnitt|Korrektur/);
   assert.doesNotMatch(html, /JSON exportieren|JSON importieren/);
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton|codex-preview/i);
 });
@@ -55,6 +55,8 @@ test("keeps durable local storage and removes starter references", async () => {
   assert.match(page, /KanbanBoard/);
   assert.match(page, /closeActiveTimer/);
   assert.match(page, /normalizeWorkStatus/);
+  assert.match(page, /briefing" \|\| status === "preparation"/);
+  assert.match(page, /title: "in Planung"/);
   assert.match(page, /TaskComposerDialog/);
   assert.match(page, /isComposerOpen/);
   assert.match(page, /SEND_SLOTS = \["17:45", "19:30", "21:45"\]/);

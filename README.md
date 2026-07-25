@@ -22,6 +22,7 @@ im Terminal, normalerweise `http://localhost:3000/`.
 - Projekttyp `ANIM`, `INFO` oder `KARTE` und Kuerzel werden fuer den Ordnernamen erfasst.
 - Die festen Sendefenster `17:45`, `19:30` und `21:45` sind als Schnellwahl hinterlegt.
 - Die eigentliche Produktionsdeadline kann separat gesetzt werden.
+- Das Board nutzt die Spalten `in Planung`, `in Arbeit`, `Abnahme` und `Fertig`.
 - Timer sind bewusst auf `Vorbereitung` und `in Arbeit` reduziert.
 - Wird eine Aufgabe in `Abnahme` verschoben, stoppt eine laufende Zeiterfassung.
 - Wird danach wieder ein Timer gestartet, springt die Aufgabe zur passenden Arbeitsspalte.

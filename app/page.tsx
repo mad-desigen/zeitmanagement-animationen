@@ -7,8 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 type TimerKind = "preparation" | "animation";
 type ViewMode = "board" | "timeline";
 type WorkStatus =
-  | "briefing"
-  | "preparation"
+  | "planning"
   | "animation"
   | "approval"
   | "delivered";
@@ -59,8 +58,7 @@ const TIMER_LABELS: Record<TimerKind, string> = {
   animation: "in Arbeit",
 };
 const BOARD_COLUMNS: Array<{ key: WorkStatus; title: string }> = [
-  { key: "briefing", title: "Neu" },
-  { key: "preparation", title: "Vorbereitung" },
+  { key: "planning", title: "in Planung" },
   { key: "animation", title: "in Arbeit" },
   { key: "approval", title: "Abnahme" },
   { key: "delivered", title: "Fertig" },
@@ -165,12 +163,13 @@ function riskLabel(risk: string) {
   return "Im Plan";
 }
 
-function normalizeWorkStatus(status: Partial<Task>["workStatus"]): WorkStatus {
+function normalizeWorkStatus(status: string | undefined): WorkStatus {
+  if (status === "briefing" || status === "preparation") return "planning";
   if (status === "correction" || status === "render") return "approval";
-  if (status === "preparation" || status === "animation" || status === "approval" || status === "delivered") {
+  if (status === "planning" || status === "animation" || status === "approval" || status === "delivered") {
     return status;
   }
-  return "briefing";
+  return "planning";
 }
 
 function closeActiveTimer(task: Task, endedAt = new Date().toISOString()) {
@@ -298,7 +297,7 @@ export default function Home() {
       description: draft.description,
       sendSlot: draft.sendSlot,
       productionDeadline: combineDeadline(draft.deadlineDate, draft.deadlineTime),
-      workStatus: "briefing",
+      workStatus: "planning",
       activeTimer: null,
       sessions: [],
       createdAt: new Date().toISOString(),
@@ -336,7 +335,7 @@ export default function Home() {
     if (task.activeTimer) stopTimer(task);
     patchTask(task.id, {
       activeTimer: { kind, startedAt: new Date().toISOString() },
-      workStatus: kind,
+      workStatus: kind === "preparation" ? "planning" : "animation",
     });
   }
 
