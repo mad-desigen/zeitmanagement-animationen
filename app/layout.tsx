@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Produktions-Timeline",
+  title: "Zeitmanagement fuer Animationen",
   description: "Lokales Zeitmanagement-Tool fuer Animationen, Deadlines und Arbeitszeiten.",
   icons: {
     icon: "/favicon.svg",

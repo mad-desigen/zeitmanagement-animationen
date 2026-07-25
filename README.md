@@ -1,7 +1,7 @@
-# Produktions-Timeline
+# Zeitmanagement fuer Animationen
 
 Zeitmanagement-Tool im Darkmode fuer Produktionen mit Animationsdeadline,
-Sendezeit, Kanban-Board, Produktions-Timeline, Vorbereitungstimer,
+Sendezeit, Kanban-Board, Timeline, Vorbereitungstimer,
 Arbeits-Timer und Tagesauswertung.
 
 ## Start
@@ -17,7 +17,7 @@ im Terminal, normalerweise `http://localhost:3000/`.
 ## Wichtige Funktionen
 
 - Animationen werden im Kanban-Board per Drag and Drop verschoben.
-- Die Produktions-Timeline ist eine eigene Ansicht.
+- Die Timeline ist eine eigene Ansicht.
 - Neue Aufgaben werden ueber den `+ Aufgabe hinzufuegen` Dialog angelegt.
 - Projekttyp `ANIM`, `INFO` oder `KARTE` und Kuerzel werden fuer den Ordnernamen erfasst.
 - Die festen Sendefenster `17:45`, `19:30` und `21:45` sind als Schnellwahl hinterlegt.

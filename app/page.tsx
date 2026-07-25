@@ -374,11 +374,8 @@ export default function Home() {
         <div className="mx-auto flex max-w-[1600px] flex-col gap-5 px-5 py-5 lg:px-8">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#69716d]">
+              <h1 className="max-w-4xl text-4xl font-semibold uppercase tracking-[0.18em] text-[#f4f4f2] md:text-6xl">
                 Zeitmanagement fuer Animationen
-              </p>
-              <h1 className="mt-1 text-3xl font-semibold tracking-normal text-[#14201e] md:text-4xl">
-                Produktions-Timeline
               </h1>
             </div>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -399,7 +396,7 @@ export default function Home() {
                 Kanban
               </button>
               <button className={view === "timeline" ? "active" : ""} onClick={() => setView("timeline")}>
-                Produktions-Timeline
+                Timeline
               </button>
             </div>
             <button className="control-button" onClick={enableNotifications}>
@@ -652,7 +649,7 @@ function ProductionOverview({ tasks, now }: { tasks: Task[]; now: Date }) {
   return (
     <div className="overview-panel">
       <div className="overview-head">
-        <h2>Produktions-Timeline</h2>
+        <h2>Timeline</h2>
         <div className="legend">
           <span className="legend-ok">Im Plan</span>
           <span className="legend-tight">Knapp</span>

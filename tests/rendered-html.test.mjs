@@ -29,12 +29,13 @@ test("server-renders the production timeline app shell", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>Produktions-Timeline<\/title>/i);
-  assert.match(html, /Produktions-Timeline/);
+  assert.match(html, /<title>Zeitmanagement fuer Animationen<\/title>/i);
+  assert.match(html, /Zeitmanagement fuer Animationen/);
+  assert.doesNotMatch(html, /Produktions-Timeline/);
   assert.doesNotMatch(html, /MDR Aktuell/);
   assert.match(html, /Aufgabe hinzufuegen/);
   assert.match(html, /Kanban/);
-  assert.match(html, /Produktions-Timeline/);
+  assert.match(html, /Timeline/);
   assert.match(html, /in Planung/);
   assert.match(html, /in Arbeit/);
   assert.match(html, /Abnahme/);
@@ -51,7 +52,7 @@ test("keeps durable local storage and removes starter references", async () => {
   ]);
 
   assert.match(page, /localStorage\.setItem\(STORAGE_KEY/);
-  assert.doesNotMatch(page + layout + packageJson, /MDR Aktuell|mdr-aktuell/);
+  assert.doesNotMatch(page + layout + packageJson, /MDR Aktuell|mdr-aktuell|Produktions-Timeline/);
   assert.match(page, /JSZip/);
   assert.match(page, /KanbanBoard/);
   assert.match(page, /closeActiveTimer/);
