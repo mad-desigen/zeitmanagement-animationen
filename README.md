@@ -48,8 +48,8 @@ im Terminal, normalerweise `http://localhost:3000/`.
 
 Die App kann als statische `index.html` laufen und speichert lokal als Fallback
 im Browser. Für globale Synchronisation nutzt sie `api.php` und speichert die
-Aufgaben zentral in MySQL. Das Server-Passwort wird im Browser gespeichert und
-für Laden/Speichern an das API gesendet.
+Aufgaben zentral in MySQL. Die Seite ist öffentlich nutzbar; das API ist daher
+ebenfalls öffentlich erreichbar.
 
 ## Prüfen
 

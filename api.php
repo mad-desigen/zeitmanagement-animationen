@@ -8,7 +8,6 @@ const DB_HOST = 'localhost';
 const DB_NAME = 'db13163493-zeit';
 const DB_USER = 'db13163493-ze';
 const DB_PASS = 'MdrZeit!';
-const APP_PASSWORD = 'MdrZeit!';
 const STATE_KEY = 'tasks';
 
 function respond(array $payload, int $status = 200): never {
@@ -21,13 +20,6 @@ function readInput(): array {
     $raw = file_get_contents('php://input') ?: '{}';
     $data = json_decode($raw, true);
     return is_array($data) ? $data : [];
-}
-
-function requirePassword(array $input): void {
-    $password = (string)($input['password'] ?? '');
-    if ($password === '' || !hash_equals(APP_PASSWORD, $password)) {
-        respond(['ok' => false, 'error' => 'Server-Passwort ist falsch.'], 403);
-    }
 }
 
 function db(): PDO {
@@ -86,7 +78,6 @@ function saveTasks(array $tasks): void {
 
 try {
     $input = readInput();
-    requirePassword($input);
     $action = (string)($_GET['action'] ?? '');
 
     if ($action === 'load') {

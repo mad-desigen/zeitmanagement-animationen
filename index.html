@@ -1143,25 +1143,21 @@
     }
     function loadSyncSettings() {
       try {
+        const stored = localStorage.getItem(SERVER_SYNC_KEY + ":enabled");
         return {
-          enabled: localStorage.getItem(SERVER_SYNC_KEY + ":enabled") === "true",
-          password: localStorage.getItem(SERVER_SYNC_KEY + ":password") || "",
+          enabled: stored === null ? true : stored === "true",
         };
       } catch {
-        return { enabled: false, password: "" };
+        return { enabled: true };
       }
     }
     function saveSyncSettings(settings = syncSettings) {
       syncSettings = settings;
       localStorage.setItem(SERVER_SYNC_KEY + ":enabled", settings.enabled ? "true" : "false");
-      if (settings.password) localStorage.setItem(SERVER_SYNC_KEY + ":password", settings.password);
-      else localStorage.removeItem(SERVER_SYNC_KEY + ":password");
     }
     function readSyncForm() {
-      const passwordInput = document.getElementById("syncPassword");
       const enabledInput = document.getElementById("syncEnabled");
       return {
-        password: passwordInput ? passwordInput.value : syncSettings.password,
         enabled: enabledInput ? enabledInput.checked : syncSettings.enabled,
       };
     }
@@ -1193,11 +1189,10 @@
       return { ...task, updatedAt: new Date().toISOString() };
     }
     async function apiRequest(action, body = {}) {
-      if (!syncSettings.password) throw new Error("Server-Passwort fehlt.");
       const response = await fetch(API_URL + "?action=" + encodeURIComponent(action), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: syncSettings.password, ...body }),
+        body: JSON.stringify(body),
       });
       const data = await response.json().catch(() => null);
       if (!response.ok || !data || data.ok === false) {
@@ -1241,7 +1236,7 @@
       }
     }
     function queueServerSync() {
-      if (!syncSettings.enabled || !syncSettings.password) return;
+      if (!syncSettings.enabled) return;
       clearTimeout(syncTimer);
       syncStatus = { tone: "warn", text: "Server-Sync wartet..." };
       syncTimer = setTimeout(() => saveToServer({ silent: true }), 900);
@@ -1568,10 +1563,7 @@
           </div>
           <div class="settings-card">
             <h3>Speicherort</h3>
-            <p>Der Server speichert Aufgaben und Zeiten zentral in der Datenbank. Neue Browser brauchen nur einmal das Sync-Passwort.</p>
-            <label>Sync-Passwort
-              <input id="syncPassword" type="password" value="${escapeHtml(syncSettings.password)}" placeholder="Passwort">
-            </label>
+            <p>Der Server speichert Aufgaben und Zeiten zentral in der Datenbank. Die Seite bleibt öffentlich nutzbar.</p>
             <label>
               <span><input id="syncEnabled" type="checkbox" ${syncSettings.enabled ? "checked" : ""}> Automatisch mit Server synchronisieren</span>
             </label>
@@ -1921,17 +1913,12 @@
       if (event.target.id === "saveSyncSettings") {
         const settings = readSyncForm();
         saveSyncSettings(settings);
-        updateSyncStatus("ok", settings.enabled && settings.password ? "Server-Sync aktiv." : "Server-Verbindung gespeichert.");
+        updateSyncStatus(settings.enabled ? "ok" : "warn", settings.enabled ? "Server-Sync aktiv." : "Server-Sync aus.");
       }
       if (event.target.id === "loadServer") loadFromServer();
       if (event.target.id === "saveServer") saveToServer();
     });
     document.getElementById("view").addEventListener("input", event => {
-      if (event.target.id === "syncPassword") {
-        saveSyncSettings(readSyncForm());
-        updateSyncStatus("warn", "Server-Passwort lokal gespeichert.");
-        return;
-      }
       if (event.target.id !== "analysisSearch") return;
       analysisQuery = event.target.value;
       renderAnalysis();
@@ -1940,7 +1927,8 @@
       if (event.target.id !== "syncEnabled") return;
       const settings = readSyncForm();
       saveSyncSettings(settings);
-      updateSyncStatus(settings.enabled && settings.password ? "ok" : "warn", settings.enabled ? "Automatischer Server-Sync gespeichert." : "Automatischer Server-Sync aus.");
+      updateSyncStatus(settings.enabled ? "ok" : "warn", settings.enabled ? "Automatischer Server-Sync aktiv." : "Automatischer Server-Sync aus.");
+      if (settings.enabled) saveToServer({ silent: true });
     });
     document.getElementById("view").addEventListener("toggle", event => {
       const details = event.target.closest("details[data-details-id]");
@@ -1987,7 +1975,7 @@
     renderSlots();
     updateNotificationButton("Notification" in window ? Notification.permission : "default");
     render();
-    if (syncSettings.password) loadFromServer({ silent: true });
+    loadFromServer({ silent: true });
   </script>
 </body>
 </html>
