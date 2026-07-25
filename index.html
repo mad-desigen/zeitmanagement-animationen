@@ -1024,7 +1024,6 @@
 
   <script>
     const STORAGE_KEY = "zeitmanagement-tool-v3";
-    const SERVER_SYNC_KEY = "zeitmanagement-server-sync-v1";
     const API_URL = "https://mad-design.de/mdr/api.php";
     const SEND_SLOTS = ["17:45", "19:30", "21:45"];
     const COLUMNS = [
@@ -1046,10 +1045,11 @@
     let draggingTaskId = null;
     let lastArchiveDate = toLocalDate(new Date());
     let tasks = archiveCompletedTasks(loadTasks(), now);
-    let syncSettings = loadSyncSettings();
-    let syncStatus = { tone: "", text: "Server-Sync nicht eingerichtet." };
+    let syncStatus = { tone: "ok", text: "Server-Sync aktiv." };
     let syncTimer = null;
     let isSyncing = false;
+    let pendingServerSave = false;
+    let lastServerPull = 0;
 
     function uid() {
       return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
@@ -1141,26 +1141,6 @@
       save();
       render();
     }
-    function loadSyncSettings() {
-      try {
-        const stored = localStorage.getItem(SERVER_SYNC_KEY + ":enabled");
-        return {
-          enabled: stored === null ? true : stored === "true",
-        };
-      } catch {
-        return { enabled: true };
-      }
-    }
-    function saveSyncSettings(settings = syncSettings) {
-      syncSettings = settings;
-      localStorage.setItem(SERVER_SYNC_KEY + ":enabled", settings.enabled ? "true" : "false");
-    }
-    function readSyncForm() {
-      const enabledInput = document.getElementById("syncEnabled");
-      return {
-        enabled: enabledInput ? enabledInput.checked : syncSettings.enabled,
-      };
-    }
     function updateSyncStatus(tone, text) {
       syncStatus = { tone, text };
       const box = document.getElementById("syncStatus");
@@ -1185,6 +1165,14 @@
       });
       return Array.from(map.values()).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
+    function tasksSignature(list) {
+      return JSON.stringify(list.map(task => ({
+        id: task.id,
+        version: taskVersionMs(task),
+        status: task.workStatus,
+        active: task.activeTimer ? task.activeTimer.kind + task.activeTimer.startedAt : "",
+      })).sort((a, b) => a.id.localeCompare(b.id)));
+    }
     function touch(task) {
       return { ...task, updatedAt: new Date().toISOString() };
     }
@@ -1204,21 +1192,34 @@
       if (isSyncing) return;
       isSyncing = true;
       try {
+        const before = tasksSignature(tasks);
         const remote = await apiRequest("load");
-        tasks = archiveCompletedTasks(mergeTasks(tasks, remote.tasks || []), new Date());
+        const remoteTasks = remote.tasks || [];
+        const merged = archiveCompletedTasks(mergeTasks(tasks, remoteTasks), new Date());
+        const remoteSignature = tasksSignature(remoteTasks.map(normalizeTask));
+        const mergedSignature = tasksSignature(merged);
+        tasks = merged;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        if (mergedSignature !== remoteSignature) pendingServerSave = true;
         syncStatus = { tone: "ok", text: "Server geladen: " + formatClock(new Date()) };
-        render();
+        if (tasksSignature(tasks) !== before || !silent) render();
       } catch (error) {
         syncStatus = { tone: "error", text: error.message };
         if (!silent) alert(error.message);
         render();
       } finally {
         isSyncing = false;
+        if (pendingServerSave) {
+          pendingServerSave = false;
+          saveToServer({ silent: true });
+        }
       }
     }
     async function saveToServer({ silent = false } = {}) {
-      if (isSyncing) return;
+      if (isSyncing) {
+        pendingServerSave = true;
+        return;
+      }
       isSyncing = true;
       try {
         const remote = await apiRequest("save", { tasks });
@@ -1233,10 +1234,13 @@
         render();
       } finally {
         isSyncing = false;
+        if (pendingServerSave) {
+          pendingServerSave = false;
+          saveToServer({ silent: true });
+        }
       }
     }
     function queueServerSync() {
-      if (!syncSettings.enabled) return;
       clearTimeout(syncTimer);
       syncStatus = { tone: "warn", text: "Server-Sync wartet..." };
       syncTimer = setTimeout(() => saveToServer({ silent: true }), 900);
@@ -1563,12 +1567,8 @@
           </div>
           <div class="settings-card">
             <h3>Speicherort</h3>
-            <p>Der Server speichert Aufgaben und Zeiten zentral in der Datenbank. Die Seite bleibt öffentlich nutzbar.</p>
-            <label>
-              <span><input id="syncEnabled" type="checkbox" ${syncSettings.enabled ? "checked" : ""}> Automatisch mit Server synchronisieren</span>
-            </label>
+            <p>Der Server-Sync ist dauerhaft aktiv. Aufgaben und Zeiten werden zentral in der Datenbank gespeichert.</p>
             <div class="settings-actions">
-              <button class="secondary" id="saveSyncSettings">Verbindung speichern</button>
               <button class="secondary" id="loadServer">Server laden</button>
               <button class="secondary" id="saveServer">Server speichern</button>
             </div>
@@ -1910,11 +1910,6 @@
       if (event.target.id === "loadBackup") document.getElementById("backupFile").click();
       if (event.target.id === "importCsv") document.getElementById("csvFile").click();
       if (event.target.id === "closeDay") archiveWorkday();
-      if (event.target.id === "saveSyncSettings") {
-        const settings = readSyncForm();
-        saveSyncSettings(settings);
-        updateSyncStatus(settings.enabled ? "ok" : "warn", settings.enabled ? "Server-Sync aktiv." : "Server-Sync aus.");
-      }
       if (event.target.id === "loadServer") loadFromServer();
       if (event.target.id === "saveServer") saveToServer();
     });
@@ -1922,13 +1917,6 @@
       if (event.target.id !== "analysisSearch") return;
       analysisQuery = event.target.value;
       renderAnalysis();
-    });
-    document.getElementById("view").addEventListener("change", event => {
-      if (event.target.id !== "syncEnabled") return;
-      const settings = readSyncForm();
-      saveSyncSettings(settings);
-      updateSyncStatus(settings.enabled ? "ok" : "warn", settings.enabled ? "Automatischer Server-Sync aktiv." : "Automatischer Server-Sync aus.");
-      if (settings.enabled) saveToServer({ silent: true });
     });
     document.getElementById("view").addEventListener("toggle", event => {
       const details = event.target.closest("details[data-details-id]");
@@ -1968,6 +1956,10 @@
       }
       warnCritical();
       if (draggingTaskId) return;
+      if (!shouldPauseLiveRender() && Date.now() - lastServerPull > 4000) {
+        lastServerPull = Date.now();
+        loadFromServer({ silent: true });
+      }
       if (shouldPauseLiveRender()) return;
       render();
     }, 1000);
