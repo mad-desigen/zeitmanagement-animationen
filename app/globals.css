@@ -103,9 +103,9 @@ button:hover {
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  border-color: #f04f78;
-  background: #f04f78;
-  color: #fffdf8;
+  border-color: #2f80ff;
+  background: #2f80ff;
+  color: #ffffff;
 }
 
 .add-task-button span {
@@ -151,8 +151,8 @@ button:hover {
 }
 
 .view-switch button.active {
-  background: #f04f78;
-  color: #fffdf8;
+  background: #ffd84d;
+  color: #111111;
 }
 
 .form-grid {
