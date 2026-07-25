@@ -24,7 +24,11 @@ im Terminal, normalerweise `http://localhost:3000/`.
 
 - Animationen werden im Kanban-Board per Drag and Drop verschoben.
 - Die Timeline ist eine eigene Ansicht.
+- Die Analyse-Ansicht hat Suche und zeigt Erfahrungswerte aus abgeschlossenen Aufgaben.
 - Neue Aufgaben werden über den `+ Aufgabe hinzufügen` Dialog angelegt.
+- Bestehende Aufgaben können über `Bearbeiten` geändert werden.
+- CSV-Dateien aus Planner/Excel können importiert werden.
+- Backups können als Datei gespeichert und wieder geladen werden.
 - Projekttyp `ANIM`, `INFO` oder `KARTE` und Kürzel werden für den Ordnernamen erfasst.
 - Die festen Sendefenster `17:45`, `19:30` und `21:45` sind als Schnellwahl hinterlegt.
 - Die eigentliche Produktionsdeadline kann separat gesetzt werden.
@@ -39,6 +43,17 @@ im Terminal, normalerweise `http://localhost:3000/`.
 - Pro Animation kann eine ZIP-Datei nach der bestehenden Windows-Vorlage
   heruntergeladen werden: `AKT yyyy-MM-dd TYP KUERZEL` mit `_MAT` und `_ERG`.
 - Browser-Benachrichtigungen warnen bei kritischen Aufgaben, solange die App offen ist.
+
+## Datenspeicherung
+
+Die App selbst wird über GitHub Pages ausgeliefert. Laufende Arbeitsdaten werden
+lokal im Browser gespeichert. Für eine sichere Sicherung gibt es `Backup
+speichern` und `Backup laden`.
+
+Direktes Speichern laufender Aufgaben in GitHub ist in einer öffentlichen
+Browser-App bewusst nicht eingebaut, weil dafür ein Schreibzugang im Browser
+liegen müsste. Das wäre für Arbeitsdaten und ein öffentliches Repository nicht
+sicher.
 
 ## Prüfen
 
