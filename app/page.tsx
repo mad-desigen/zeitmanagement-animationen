@@ -11,8 +11,6 @@ type WorkStatus =
   | "preparation"
   | "animation"
   | "approval"
-  | "correction"
-  | "render"
   | "delivered";
 
 type TimerSession = {
@@ -58,15 +56,13 @@ const DAY_START_HOUR = 12;
 const DAY_END_HOUR = 22;
 const TIMER_LABELS: Record<TimerKind, string> = {
   preparation: "Vorbereitung",
-  animation: "Animation",
+  animation: "in Arbeit",
 };
 const BOARD_COLUMNS: Array<{ key: WorkStatus; title: string }> = [
   { key: "briefing", title: "Neu" },
   { key: "preparation", title: "Vorbereitung" },
-  { key: "animation", title: "Animation" },
+  { key: "animation", title: "in Arbeit" },
   { key: "approval", title: "Abnahme" },
-  { key: "correction", title: "Korrektur" },
-  { key: "render", title: "Render/Schnitt" },
   { key: "delivered", title: "Fertig" },
 ];
 
@@ -169,6 +165,31 @@ function riskLabel(risk: string) {
   return "Im Plan";
 }
 
+function normalizeWorkStatus(status: Partial<Task>["workStatus"]): WorkStatus {
+  if (status === "correction" || status === "render") return "approval";
+  if (status === "preparation" || status === "animation" || status === "approval" || status === "delivered") {
+    return status;
+  }
+  return "briefing";
+}
+
+function closeActiveTimer(task: Task, endedAt = new Date().toISOString()) {
+  if (!task.activeTimer) return { sessions: task.sessions, activeTimer: null };
+
+  const session: TimerSession = {
+    id: uid(),
+    kind: task.activeTimer.kind,
+    startedAt: task.activeTimer.startedAt,
+    endedAt,
+    seconds: secondsBetween(task.activeTimer.startedAt, endedAt),
+  };
+
+  return {
+    activeTimer: null,
+    sessions: [...task.sessions, session],
+  };
+}
+
 function normalizeTasks(raw: string | null): Task[] {
   if (!raw) return [];
   try {
@@ -183,7 +204,7 @@ function normalizeTasks(raw: string | null): Task[] {
       description: task.description ?? "",
       sendSlot: task.sendSlot ?? "17:45",
       productionDeadline: task.productionDeadline ?? combineDeadline(toLocalDate(new Date()), "17:15"),
-      workStatus: task.workStatus ?? "briefing",
+      workStatus: normalizeWorkStatus(task.workStatus),
       activeTimer: task.activeTimer ?? null,
       sessions: task.sessions ?? [],
       createdAt: task.createdAt ?? new Date().toISOString(),
@@ -293,10 +314,22 @@ export default function Home() {
   }
 
   function moveTask(id: string, workStatus: WorkStatus) {
-    patchTask(id, {
-      workStatus,
-      completedAt: workStatus === "delivered" ? new Date().toISOString() : null,
-    });
+    setTasks((current) =>
+      current.map((task) => {
+        if (task.id !== id) return task;
+        const timerPatch =
+          workStatus === "approval" || workStatus === "delivered"
+            ? closeActiveTimer(task)
+            : {};
+
+        return {
+          ...task,
+          ...timerPatch,
+          workStatus,
+          completedAt: workStatus === "delivered" ? new Date().toISOString() : null,
+        };
+      }),
+    );
   }
 
   function startTimer(task: Task, kind: TimerKind) {
@@ -309,17 +342,8 @@ export default function Home() {
 
   function stopTimer(task: Task) {
     if (!task.activeTimer) return;
-    const endedAt = new Date().toISOString();
-    const session: TimerSession = {
-      id: uid(),
-      kind: task.activeTimer.kind,
-      startedAt: task.activeTimer.startedAt,
-      endedAt,
-      seconds: secondsBetween(task.activeTimer.startedAt, endedAt),
-    };
     patchTask(task.id, {
-      activeTimer: null,
-      sessions: [...task.sessions, session],
+      ...closeActiveTimer(task),
     });
   }
 
@@ -362,7 +386,7 @@ export default function Home() {
               <Metric label="Aktive Jobs" value={String(activeTasks.length)} />
               <Metric label="Heute erfasst" value={formatDuration(summary.worked)} />
               <Metric label="Vorbereitung" value={formatDuration(summary.prep)} />
-              <Metric label="Animation" value={formatDuration(summary.animation)} />
+              <Metric label="in Arbeit" value={formatDuration(summary.animation)} />
             </div>
           </div>
 
@@ -390,7 +414,7 @@ export default function Home() {
         <section className="space-y-4">
           <div className="learning-strip">
             <LearningRow label="Durchschnitt Vorbereitung" value={average(completedTasks, "preparation")} />
-            <LearningRow label="Durchschnitt Animation" value={average(completedTasks, "animation")} />
+            <LearningRow label="Durchschnitt in Arbeit" value={average(completedTasks, "animation")} />
             <LearningRow label="Abgeschlossene Jobs" value={`${completedTasks.length}`} />
           </div>
           {view === "timeline" ? (

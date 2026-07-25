@@ -36,7 +36,9 @@ test("server-renders the production timeline app shell", async () => {
   assert.match(html, /Kanban/);
   assert.match(html, /Produktions-Timeline/);
   assert.match(html, /Neu/);
-  assert.match(html, /Render\/Schnitt/);
+  assert.match(html, /in Arbeit/);
+  assert.match(html, /Abnahme/);
+  assert.doesNotMatch(html, /Render\/Schnitt|Korrektur/);
   assert.doesNotMatch(html, /JSON exportieren|JSON importieren/);
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton|codex-preview/i);
 });
@@ -51,6 +53,8 @@ test("keeps durable local storage and removes starter references", async () => {
   assert.match(page, /localStorage\.setItem\(STORAGE_KEY/);
   assert.match(page, /JSZip/);
   assert.match(page, /KanbanBoard/);
+  assert.match(page, /closeActiveTimer/);
+  assert.match(page, /normalizeWorkStatus/);
   assert.match(page, /TaskComposerDialog/);
   assert.match(page, /isComposerOpen/);
   assert.match(page, /SEND_SLOTS = \["17:45", "19:30", "21:45"\]/);
@@ -63,6 +67,7 @@ test("keeps durable local storage and removes starter references", async () => {
   assert.match(page, /folder\("_ERG"\)/);
   assert.doesNotMatch(page, /folder\("Vorschau"\)/);
   assert.doesNotMatch(page, /Projektinfo\.txt/);
+  assert.doesNotMatch(page, /title: "Render\/Schnitt"|title: "Korrektur"/);
   assert.match(page, /Deadline-Zeit/);
   assert.match(page, /Notification\.requestPermission/);
   assert.doesNotMatch(page, /estimatedPreparationMinutes|estimatedAnimationMinutes|Vorbereitung min|Animation min/);

@@ -1,8 +1,8 @@
 # MDR Aktuell Produktions-Timeline
 
-Zeitmanagement-Tool im Darkmode fuer Animationen mit Produktionsdeadline,
+Zeitmanagement-Tool im Darkmode fuer Produktionen mit Animationsdeadline,
 Sendezeit, Kanban-Board, Produktions-Timeline, Vorbereitungstimer,
-Animationstimer und Tagesauswertung.
+Arbeits-Timer und Tagesauswertung.
 
 ## Start
 
@@ -22,7 +22,9 @@ im Terminal, normalerweise `http://localhost:3000/`.
 - Projekttyp `ANIM`, `INFO` oder `KARTE` und Kuerzel werden fuer den Ordnernamen erfasst.
 - Die festen Sendefenster `17:45`, `19:30` und `21:45` sind als Schnellwahl hinterlegt.
 - Die eigentliche Produktionsdeadline kann separat gesetzt werden.
-- Timer sind bewusst auf `Vorbereitung` und `Animation` reduziert.
+- Timer sind bewusst auf `Vorbereitung` und `in Arbeit` reduziert.
+- Wird eine Aufgabe in `Abnahme` verschoben, stoppt eine laufende Zeiterfassung.
+- Wird danach wieder ein Timer gestartet, springt die Aufgabe zur passenden Arbeitsspalte.
 - Das Tool zeigt verbleibende Zeit und erfasste Arbeitszeit.
 - Daten bleiben nach Reloads im Browser erhalten.
 - Pro Animation kann eine ZIP-Datei nach der bestehenden Windows-Vorlage
