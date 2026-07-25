@@ -96,9 +96,9 @@
     }
     .brand-logo {
       display: block;
-      width: min(360px, 42vw);
+      width: min(720px, 58vw);
       height: auto;
-      max-height: 82px;
+      max-height: 164px;
     }
 	    .color-palette {
 	      display: flex;
@@ -191,11 +191,12 @@
       display: flex;
       flex-wrap: wrap;
       align-items: center;
+      justify-content: flex-end;
       gap: 12px;
       max-width: 1600px;
       margin: 20px auto 0;
     }
-    .add {
+    .add, .column-add {
       display: inline-flex;
       align-items: center;
       gap: 9px;
@@ -208,6 +209,21 @@
       font-size: 25px;
       line-height: 0;
       font-weight: 400;
+    }
+    .column-add {
+      width: calc(100% - 24px);
+      min-height: 46px;
+      justify-content: flex-start;
+      margin: 10px 12px 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      color: rgba(244,246,248,.78);
+      font-size: 15px;
+    }
+    .column-add:hover {
+      background: rgba(255,255,255,.055);
+      color: var(--text);
     }
     .secondary {
       background: rgba(255,255,255,.045);
@@ -1438,8 +1454,8 @@
         letter-spacing: .035em;
       }
       .brand-logo {
-        width: min(230px, 64vw);
-        max-height: 54px;
+        width: min(320px, 76vw);
+        max-height: 78px;
       }
       .header-row {
         gap: 12px;
@@ -1454,7 +1470,7 @@
         bottom: 0;
         z-index: 25;
         display: grid;
-        grid-template-columns: 1fr 48px;
+        grid-template-columns: minmax(0, 1fr) 48px;
         gap: 8px;
         margin: 0;
         padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
@@ -1470,7 +1486,7 @@
         box-shadow: 0 14px 30px rgba(69, 212, 131, .18);
       }
       .switch {
-        grid-column: 1 / -1;
+        grid-column: 1;
         grid-row: 1;
         grid-template-columns: repeat(5, minmax(0, 1fr));
         width: 100%;
@@ -1497,12 +1513,11 @@
         height: 23px;
       }
       #openDialog {
-        grid-column: 1;
-        grid-row: 2;
+        display: none;
       }
       #notify {
         grid-column: 2;
-        grid-row: 2;
+        grid-row: 1;
         width: 46px;
         min-width: 46px;
         min-height: 46px;
@@ -1873,7 +1888,6 @@
       <div class="metrics" id="metrics"></div>
     </div>
     <div class="actions">
-      <button class="add" id="openDialog"><span>+</span> Aufgabe hinzufügen</button>
       <div class="switch" aria-label="Ansicht wechseln">
         <button class="active" data-view="board" title="Kanban" aria-label="Kanban">
           <svg class="svg-icon nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="7" height="16" rx="2"></rect><rect x="14" y="4" width="7" height="16" rx="2"></rect></svg>
@@ -2111,6 +2125,7 @@
     let galleryImages = [];
     let galleryIndex = 0;
     let mobileColumn = "planning";
+    let pendingNewStatus = "planning";
     let deadlineAlertTaskId = null;
 	    let analysisQuery = "";
     let now = new Date();
@@ -2685,12 +2700,17 @@
       const mobileTabs = renderMobileQuickTabs();
       const mobileTasks = tasks.filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt && !task.archivedAt && task.workStatus === mobileColumn)
         .sort((a, b) => new Date(a.productionDeadline) - new Date(b.productionDeadline));
-      const mobileList = `<div class="mobile-task-list">${mobileTasks.length ? mobileTasks.map(renderCard).join("") : '<div class="empty">Leer</div>'}</div>`;
+      const mobileTitle = (COLUMNS.find(([key]) => key === mobileColumn) || [null, "Aufgabe"])[1];
+      const mobileList = `<div class="mobile-task-list">
+        <button type="button" class="column-add" data-action="add-task" data-status="${mobileColumn}" title="Aufgabe hinzufügen" aria-label="Aufgabe hinzufügen"><span>+</span> Aufgabe hinzufügen</button>
+        ${mobileTasks.length ? mobileTasks.map(renderCard).join("") : `<div class="empty">${escapeHtml(mobileTitle)} ist leer.</div>`}
+      </div>`;
       const desktopBoard = `<div class="board">${COLUMNS.map(([key, title]) => {
         const columnTasks = tasks.filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt && !task.archivedAt && task.workStatus === key)
           .sort((a, b) => new Date(a.productionDeadline) - new Date(b.productionDeadline));
         return `<section class="column" data-column="${key}">
           <div class="column-head"><h2>${title}</h2><span>${columnTasks.length}</span></div>
+          <button type="button" class="column-add" data-action="add-task" data-status="${key}" title="Aufgabe hinzufügen" aria-label="Aufgabe hinzufügen"><span>+</span> Aufgabe hinzufügen</button>
           <div class="stack">${columnTasks.length ? columnTasks.map(renderCard).join("") : '<div class="empty">Leer</div>'}</div>
         </section>`;
       }).join("")}</div>`;
@@ -3220,8 +3240,9 @@
       box.textContent = `Erfahrungswert: Vorbereitung ${prep}, in Arbeit ${animation}`;
       box.classList.add("visible");
     }
-    function openDialog(id) {
+    function openDialog(id, initialStatus = "planning") {
       editingId = typeof id === "string" ? id : null;
+      pendingNewStatus = normalizeStatus(initialStatus);
       const broadcastKey = editingId ? (tasks.find(item => item.id === editingId)?.broadcast || "aktuell") : "aktuell";
       const broadcast = BROADCASTS[broadcastKey] || BROADCASTS.aktuell;
       const deadline = new Date();
@@ -3246,6 +3267,7 @@
     function closeDialog() {
       document.getElementById("modal").classList.remove("open");
       editingId = null;
+      pendingNewStatus = "planning";
     }
     function renderSlots() {
       const broadcastKey = document.getElementById("broadcast").value;
@@ -3265,16 +3287,18 @@
 	      if (editingId) {
 	          tasks = tasks.map(task => task.id === editingId ? touch({ ...task, ...form, ...media }) : task);
 	      } else {
+          const status = normalizeStatus(pendingNewStatus);
+          const stamp = new Date().toISOString();
 	          tasks.unshift({
 	          id: uid(),
 	          ...form,
 	            ...media,
-	          workStatus: "planning",
+	          workStatus: status,
 	          activeTimer: null,
 	          sessions: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          completedAt: null,
+          createdAt: stamp,
+          updatedAt: stamp,
+          completedAt: status === "delivered" ? stamp : null,
 	          archivedAt: null,
 	        });
 	      }
@@ -3616,7 +3640,7 @@
       });
     }
 
-    document.getElementById("openDialog").addEventListener("click", () => openDialog());
+    document.getElementById("openDialog")?.addEventListener("click", () => openDialog());
     document.getElementById("deadlineAlertClose").addEventListener("click", closeDeadlineAlert);
     document.getElementById("deadlineAlertDismiss").addEventListener("click", closeDeadlineAlert);
     document.getElementById("deadlineAlertOpen").addEventListener("click", openDeadlineAlertTask);
@@ -3745,6 +3769,7 @@
 		      }
 	      const button = event.target.closest("button[data-action]");
 	      if (button) {
+        if (button.dataset.action === "add-task") openDialog(null, button.dataset.status);
         if (button.dataset.action === "timer") startTimer(button.dataset.id, button.dataset.kind);
         if (button.dataset.action === "stop") stopTimer(button.dataset.id);
 	        if (button.dataset.action === "folder") downloadFolder(button.dataset.id);
