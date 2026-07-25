@@ -505,6 +505,24 @@
       font-size: 20px;
       line-height: 1;
     }
+    .status-actions {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .status-actions button {
+      display: grid;
+      place-items: center;
+      min-height: 38px;
+      padding: 7px;
+      font-size: 18px;
+      line-height: 1;
+    }
+    .status-actions button.active {
+      border-color: var(--yellow);
+      background: var(--yellow);
+      color: #151515;
+    }
     .stop { background: rgba(240, 83, 121, .14); }
     .folder { background: rgba(255,255,255,.06); }
     .note {
@@ -1169,6 +1187,12 @@
               <div><span>Vorbereitung</span><strong>${formatDuration(sumSessions(task, "preparation"))}</strong></div>
               <div><span>in Arbeit</span><strong>${formatDuration(sumSessions(task, "animation"))}</strong></div>
             </div>
+            <div class="status-actions" aria-label="Spalte wechseln">
+              <button class="${task.workStatus === "planning" ? "active" : ""}" data-action="move" data-status="planning" data-id="${task.id}" title="in Planung" aria-label="in Planung">○</button>
+              <button class="${task.workStatus === "animation" ? "active" : ""}" data-action="move" data-status="animation" data-id="${task.id}" title="in Arbeit" aria-label="in Arbeit">▶</button>
+              <button class="${task.workStatus === "approval" ? "active" : ""}" data-action="move" data-status="approval" data-id="${task.id}" title="Abnahme" aria-label="Abnahme">◇</button>
+              <button class="${task.workStatus === "delivered" ? "active" : ""}" data-action="move" data-status="delivered" data-id="${task.id}" title="Fertig" aria-label="Fertig">✓</button>
+            </div>
             <button class="timer ${preparationActive ? "active" : ""}" data-action="timer" data-kind="preparation" data-id="${task.id}" title="${preparationActive ? "Vorbereitung stoppen" : "Vorbereitung starten"}" aria-label="${preparationActive ? "Vorbereitung stoppen" : "Vorbereitung starten"}">
               <span>◷</span>
               <strong>${formatDuration(sumSessions(task, "preparation"))}</strong>
@@ -1396,7 +1420,7 @@
       tasks = tasks.map(task => {
         if (task.id !== id) return task;
         let next = task;
-        if (status === "approval" || status === "delivered") next = closeTimer(next);
+        if (status !== "animation") next = closeTimer(next);
         return { ...next, workStatus: status, completedAt: status === "delivered" ? new Date().toISOString() : null };
       });
       save();
@@ -1405,6 +1429,9 @@
     function startTimer(id, kind) {
       tasks = tasks.map(task => {
         if (task.id !== id) return task;
+        if (task.activeTimer && task.activeTimer.kind === kind) {
+          return closeTimer(task);
+        }
         const closed = closeTimer(task);
         return { ...closed, activeTimer: { kind, startedAt: new Date().toISOString() }, workStatus: kind === "preparation" ? "planning" : "animation" };
       });
@@ -1616,6 +1643,7 @@
         if (button.dataset.action === "stop") stopTimer(button.dataset.id);
         if (button.dataset.action === "folder") downloadFolder(button.dataset.id);
         if (button.dataset.action === "edit") openDialog(button.dataset.id);
+        if (button.dataset.action === "move") moveTask(button.dataset.id, button.dataset.status);
         return;
       }
       if (event.target.id === "saveBackup") saveBackup();
