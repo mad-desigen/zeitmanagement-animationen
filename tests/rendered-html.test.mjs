@@ -121,11 +121,20 @@ test("uses one shared board and keeps board styling in settings", async () => {
 });
 
 test("supports server-backed file uploads and cropped title images", async () => {
-  const [standaloneApp, api] = await Promise.all([
+  const [standaloneApp, api, manifest, serviceWorker] = await Promise.all([
     readFile(new URL("../index.html", import.meta.url), "utf8"),
     readFile(new URL("../api.php", import.meta.url), "utf8"),
+    readFile(new URL("../manifest.webmanifest", import.meta.url), "utf8"),
+    readFile(new URL("../sw.js", import.meta.url), "utf8"),
   ]);
 
+  assert.match(standaloneApp, /<link rel="manifest" href="manifest\.webmanifest">/);
+  assert.match(standaloneApp, /navigator\.serviceWorker\.register\("\.\/sw\.js"\)/);
+  assert.match(standaloneApp, /id="chooseExistingCover"/);
+  assert.match(standaloneApp, /id="imagePickerModal"/);
+  assert.match(standaloneApp, /function openImagePicker\(\)/);
+  assert.match(standaloneApp, /function pickExistingCover\(index\)/);
+  assert.match(standaloneApp, /grid-template-columns:\s*repeat\(5, minmax\(0, 1fr\)\)/);
   assert.match(standaloneApp, /id="attachmentInput" type="file" multiple/);
   assert.match(standaloneApp, /id="coverInput" type="file" accept="image\/\*"/);
   assert.match(standaloneApp, /<canvas class="crop-canvas" id="cropCanvas" width="1470" height="630"><\/canvas>/);
@@ -158,4 +167,8 @@ test("supports server-backed file uploads and cropped title images", async () =>
   assert.match(api, /\$action === 'upload'/);
   assert.match(api, /\$action === 'file'/);
   assert.match(api, /\$action === 'deleteFile'/);
+  assert.match(manifest, /"display": "standalone"/);
+  assert.match(manifest, /"start_url": "\.\/"/);
+  assert.match(serviceWorker, /CACHE_NAME/);
+  assert.match(serviceWorker, /api\.php/);
 });

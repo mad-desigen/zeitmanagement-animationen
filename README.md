@@ -29,6 +29,8 @@ im Terminal, normalerweise `http://localhost:3000/`.
 - Bestehende Aufgaben können über `Bearbeiten` geändert werden.
 - Dateien aller Typen können an Aufgaben gehängt werden.
 - Pro Aufgabe kann ein Titelbild gewählt und vor dem Speichern auf 21:9 zugeschnitten werden.
+- Bereits hochgeladene Bilder können als Titelbild übernommen werden.
+- Die Seite ist als Smartphone-Webapp installierbar und hat eine mobile Bottom-Navigation.
 - CSV-Dateien aus Planner/Excel können importiert werden.
 - Backups können als Datei gespeichert und wieder geladen werden.
 - Projekttyp `ANIM`, `INFO` oder `KARTE` wird für den Ordnernamen erfasst; das Kürzel ist fest `PMY`.

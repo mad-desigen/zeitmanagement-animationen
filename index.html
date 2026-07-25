@@ -3,6 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101214">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Zeitmanagement">
+  <link rel="manifest" href="manifest.webmanifest">
   <title>Zeitmanagement</title>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <style>
@@ -1097,6 +1101,57 @@
       font-weight: 900;
       white-space: nowrap;
     }
+    .image-picker-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 34;
+      display: none;
+      place-items: center;
+      background: rgba(0,0,0,.78);
+      padding: 20px;
+      backdrop-filter: blur(10px);
+    }
+    .image-picker-modal.open { display: grid; }
+    .image-picker-dialog {
+      width: min(900px, 100%);
+      max-height: min(88vh, 760px);
+      overflow: auto;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--radius);
+      background: #20252d;
+      padding: 18px;
+      box-shadow: 0 28px 90px rgba(0,0,0,.48);
+    }
+    .image-picker-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .image-choice {
+      display: grid;
+      gap: 8px;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.045);
+      padding: 8px;
+      text-align: left;
+    }
+    .image-choice img {
+      width: 100%;
+      aspect-ratio: 21 / 9;
+      border-radius: 6px;
+      object-fit: cover;
+      display: block;
+    }
+    .image-choice span {
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     @media (max-width: 900px) {
       .header-row { align-items: stretch; flex-direction: column; }
       .metrics, .learning, .analysis-summary, .grid-2, .settings-grid { grid-template-columns: 1fr; }
@@ -1131,6 +1186,82 @@
       .file-actions {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 700px) {
+      body {
+        padding-bottom: calc(98px + env(safe-area-inset-bottom));
+      }
+      header {
+        position: static;
+        padding: 16px 14px 10px;
+      }
+      h1 {
+        font-size: 28px;
+      }
+      .header-row {
+        gap: 12px;
+      }
+      .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .actions {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 25;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        margin: 0;
+        padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+        border-top: 1px solid var(--line-soft);
+        background: rgba(16,18,20,.96);
+        backdrop-filter: blur(18px);
+      }
+      .add {
+        min-height: 46px;
+        justify-content: center;
+      }
+      .switch {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        width: 100%;
+      }
+      .switch button {
+        min-height: 42px;
+        padding: 7px 4px;
+        font-size: 12px;
+      }
+      #openDialog {
+        grid-column: 1;
+        grid-row: 2;
+      }
+      #notify {
+        grid-column: 2;
+        grid-row: 2;
+        width: 46px;
+        min-width: 46px;
+        min-height: 46px;
+      }
+      .dialog, .crop-dialog, .image-picker-dialog {
+        width: 100%;
+        max-height: 92vh;
+        padding: 14px;
+      }
+      .modal, .crop-modal, .gallery-modal, .image-picker-modal {
+        padding: 10px;
+      }
+      .modal-actions {
+        position: sticky;
+        bottom: 0;
+        padding-top: 10px;
+        background: #20252d;
+      }
+      .image-picker-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
   </style>
@@ -1214,6 +1345,7 @@
           <div class="cover-preview" id="coverPreview"></div>
           <div class="file-tools">
             <button type="button" class="secondary" id="pickCover">Bild auswählen</button>
+            <button type="button" class="secondary" id="chooseExistingCover">Aus Uploads wählen</button>
             <button type="button" class="secondary" id="removeCover">Titelbild entfernen</button>
           </div>
         </div>
@@ -1256,6 +1388,16 @@
 
   <input id="attachmentInput" type="file" multiple hidden>
   <input id="coverInput" type="file" accept="image/*" hidden>
+
+  <div class="image-picker-modal" id="imagePickerModal" role="dialog" aria-modal="true" aria-label="Titelbild aus Uploads wählen">
+    <div class="image-picker-dialog">
+      <div class="dialog-head">
+        <h2>Titelbild auswählen</h2>
+        <button id="closeImagePicker" aria-label="Schließen">x</button>
+      </div>
+      <div class="image-picker-grid" id="imagePickerGrid"></div>
+    </div>
+  </div>
 
   <div class="gallery-modal" id="galleryModal" role="dialog" aria-modal="true" aria-label="Bild ansehen">
     <div class="gallery-dialog">
@@ -2067,6 +2209,27 @@
 	      box.classList.add("visible");
 	      box.innerHTML = `<img src="${escapeHtml(stagedCoverImage.localUrl || stagedCoverImage.url)}" alt="">`;
 	    }
+	    function openImagePicker() {
+	      const grid = document.getElementById("imagePickerGrid");
+	      const images = boardImages();
+	      grid.innerHTML = images.length ? images.map((image, index) => `
+	        <button type="button" class="image-choice" data-pick-cover-index="${index}">
+	          <img src="${escapeHtml(image.url)}" alt="">
+	          <span>${escapeHtml(image.name)} · ${escapeHtml(image.taskTitle)}</span>
+	        </button>
+	      `).join("") : '<div class="empty">Keine hochgeladenen Bilder gefunden.</div>';
+	      document.getElementById("imagePickerModal").classList.add("open");
+	    }
+	    function closeImagePicker() {
+	      document.getElementById("imagePickerModal").classList.remove("open");
+	    }
+	    function pickExistingCover(index) {
+	      const image = boardImages()[index];
+	      if (!image) return;
+	      stagedCoverImage = normalizeFileMeta(image);
+	      renderCoverPreview();
+	      closeImagePicker();
+	    }
 	    function resetStagedMedia(task = null) {
 	      stagedAttachments = normalizeFileList(task && task.attachments);
 	      stagedCoverImage = task && task.coverImage ? normalizeFileMeta(task.coverImage) : null;
@@ -2369,6 +2532,7 @@
 	      return view === "settings"
 	        || document.getElementById("modal").classList.contains("open")
 	        || document.getElementById("cropModal").classList.contains("open")
+	        || document.getElementById("imagePickerModal").classList.contains("open")
 	        || document.getElementById("galleryModal").classList.contains("open")
 	        || isTyping
 	        || isInspectingCard;
@@ -2552,6 +2716,7 @@
 	    document.getElementById("notify").addEventListener("click", enableNotifications);
 	    document.getElementById("pickFiles").addEventListener("click", () => document.getElementById("attachmentInput").click());
 	    document.getElementById("pickCover").addEventListener("click", () => document.getElementById("coverInput").click());
+	    document.getElementById("chooseExistingCover").addEventListener("click", openImagePicker);
 	    document.getElementById("removeCover").addEventListener("click", async () => {
 	      if (stagedCoverImage && stagedCoverImage.id && editingId) {
 	        await deleteTaskFile(editingId, stagedCoverImage.id, "cover");
@@ -2581,6 +2746,12 @@
 	    document.getElementById("cancelCrop").addEventListener("click", closeCropper);
 	    document.getElementById("cancelCropBottom").addEventListener("click", closeCropper);
 	    document.getElementById("applyCrop").addEventListener("click", applyCrop);
+	    document.getElementById("closeImagePicker").addEventListener("click", closeImagePicker);
+	    document.getElementById("imagePickerModal").addEventListener("click", event => {
+	      if (event.target.id === "imagePickerModal") closeImagePicker();
+	      const button = event.target.closest("button[data-pick-cover-index]");
+	      if (button) pickExistingCover(Number(button.dataset.pickCoverIndex));
+	    });
 	    document.getElementById("closeGallery").addEventListener("click", closeGallery);
 	    document.getElementById("galleryPrev").addEventListener("click", () => stepGallery(-1));
 	    document.getElementById("galleryNext").addEventListener("click", () => stepGallery(1));
@@ -2718,10 +2889,13 @@
       render();
     }, 1000);
 
-    renderSlots();
-    updateNotificationButton("Notification" in window ? Notification.permission : "default");
-    render();
-    loadFromServer({ silent: true });
-  </script>
+	    renderSlots();
+	    updateNotificationButton("Notification" in window ? Notification.permission : "default");
+	    render();
+	    loadFromServer({ silent: true });
+	    if ("serviceWorker" in navigator && location.protocol === "https:") {
+	      navigator.serviceWorker.register("./sw.js").catch(() => {});
+	    }
+	  </script>
 </body>
 </html>
