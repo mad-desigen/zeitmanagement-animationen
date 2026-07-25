@@ -237,20 +237,23 @@
     .learning strong { float: right; }
     .board {
       display: grid;
-      grid-auto-columns: minmax(300px, 1fr);
+      grid-auto-columns: minmax(390px, 1fr);
       grid-auto-flow: column;
       gap: 14px;
       min-height: calc(100vh - 220px);
       overflow-x: auto;
+      overflow-y: visible;
       padding-bottom: 8px;
+      scroll-snap-type: x proximity;
     }
     .column {
       overflow: hidden;
       border: 1px solid var(--line-soft);
       border-radius: var(--radius);
       background: linear-gradient(180deg, rgba(var(--board-tint), .075), rgba(22, 25, 29, .88) 150px);
-      min-width: 300px;
+      min-width: 390px;
       box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+      scroll-snap-align: start;
     }
     .column-head {
       position: sticky;
@@ -297,6 +300,7 @@
     }
     .card {
       position: relative;
+      min-width: 0;
       border: 1px solid rgba(255,255,255,.09);
       border-left: 5px solid var(--green);
       border-radius: var(--radius);
@@ -326,6 +330,7 @@
     }
     .card-main {
       display: grid;
+      min-width: 0;
       gap: 12px;
     }
     .card-title-row {
@@ -343,6 +348,7 @@
     }
     .cover-image {
       width: 100%;
+      max-width: 100%;
       aspect-ratio: 21 / 9;
       overflow: hidden;
       border: 1px solid rgba(255,255,255,.1);
@@ -372,7 +378,7 @@
     }
     .card-focus {
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: minmax(0, 1fr) minmax(74px, auto);
       gap: 12px;
       align-items: stretch;
     }
@@ -383,6 +389,7 @@
       align-content: center;
     }
     .time-left {
+      min-width: 0;
       border: 1px solid rgba(255,255,255,.1);
       border-radius: var(--radius);
       background: rgba(255,255,255,.045);
@@ -450,7 +457,6 @@
       gap: 5px;
     }
     .card-subline .deadline-pill {
-      margin-left: auto;
       color: #eef2f6;
     }
     .details-toggle {
@@ -602,6 +608,7 @@
       text-decoration: none;
       font-size: 12px;
       font-weight: 800;
+      min-width: 0;
     }
     .file-card small, .upload-item small {
       color: var(--muted);
@@ -1067,6 +1074,37 @@
       .header-row { align-items: stretch; flex-direction: column; }
       .metrics, .learning, .analysis-summary, .grid-2, .settings-grid { grid-template-columns: 1fr; }
       .switch { width: 100%; }
+      main { padding-inline: 14px; }
+      .board {
+        grid-auto-columns: minmax(0, calc(100vw - 28px));
+      }
+      .column {
+        min-width: 0;
+      }
+      .card {
+        padding: 12px;
+      }
+      .card-title-row h3 {
+        font-size: 22px;
+      }
+      .card-focus, .risk, .timer-row {
+        grid-template-columns: 1fr;
+      }
+      .play-button {
+        width: 100%;
+        min-height: 58px;
+      }
+      .split-actions {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+      .file-card {
+        align-items: stretch;
+        flex-direction: column;
+      }
+      .file-actions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
     }
   </style>
 </head>

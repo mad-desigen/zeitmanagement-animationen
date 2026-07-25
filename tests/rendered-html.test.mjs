@@ -138,6 +138,9 @@ test("supports server-backed file uploads and cropped title images", async () =>
   assert.match(standaloneApp, /id="galleryModal"/);
   assert.match(standaloneApp, /data-action="view-file"/);
   assert.match(standaloneApp, /data-action="delete-file"/);
+  assert.match(standaloneApp, /grid-auto-columns:\s*minmax\(390px, 1fr\)/);
+  assert.match(standaloneApp, /grid-auto-columns:\s*minmax\(0, calc\(100vw - 28px\)\)/);
+  assert.match(standaloneApp, /grid-template-columns:\s*minmax\(0, 1fr\) minmax\(74px, auto\)/);
   assert.match(standaloneApp, /download="\$\{escapeHtml\(file\.name\)\}"/);
   assert.match(standaloneApp, /async function deleteTaskFile/);
   assert.match(api, /CREATE TABLE IF NOT EXISTS uploaded_files/);
