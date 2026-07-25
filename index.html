@@ -1436,7 +1436,7 @@
         top: 0;
         z-index: 8;
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 5px;
         margin: -2px -2px 10px;
         padding: 8px 2px;
@@ -2247,6 +2247,7 @@
 	        pause: '<path d="M8 5v14"></path><path d="M16 5v14"></path>',
         eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle>',
         check: '<path d="m5 12 4 4L19 6"></path>',
+        timeline: '<path d="M4 6h5"></path><path d="M4 12h12"></path><path d="M4 18h8"></path><path d="M18 5v14"></path><path d="M15 8h6"></path>',
 		        pencil: '<path d="M18 2 22 6 8 20 3 21l1-5Z"></path><path d="m15 5 4 4"></path>',
 	        folder: '<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"></path>',
 	        trash: '<path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 15H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path>',
@@ -2511,18 +2512,26 @@
       else if (view === "settings") renderSettings();
       else renderBoard();
     }
-    function renderBoard() {
+    function renderMobileQuickTabs() {
       const counts = Object.fromEntries(COLUMNS.map(([key]) => [
         key,
         tasks.filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt && !task.archivedAt && task.workStatus === key).length,
       ]));
-      const mobileTabs = `<div class="mobile-board-tabs" aria-label="Kanban-Spalte wählen">${COLUMNS.map(([key, title]) =>
-        `<button type="button" class="${mobileColumn === key ? "active" : ""}" data-mobile-column="${key}" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}">
+      return `<div class="mobile-board-tabs" aria-label="Mobile Ansicht wählen">${COLUMNS.map(([key, title]) =>
+        `<button type="button" class="${view === "board" && mobileColumn === key ? "active" : ""}" data-mobile-column="${key}" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}">
           <span class="mobile-tab-icon">${icon(COLUMN_ICONS[key])}</span>
           <span class="mobile-tab-label">${escapeHtml(title)}</span>
           <span class="mobile-tab-count">${counts[key]}</span>
         </button>`
-      ).join("")}</div>`;
+      ).join("")}
+        <button type="button" class="${view === "timeline" ? "active" : ""}" data-mobile-view="timeline" title="Timeline" aria-label="Timeline">
+          <span class="mobile-tab-icon">${icon("timeline")}</span>
+          <span class="mobile-tab-label">Timeline</span>
+        </button>
+      </div>`;
+    }
+    function renderBoard() {
+      const mobileTabs = renderMobileQuickTabs();
       const mobileTasks = tasks.filter(task => taskIsInActiveBroadcast(task) && !task.deletedAt && !task.archivedAt && task.workStatus === mobileColumn)
         .sort((a, b) => new Date(a.productionDeadline) - new Date(b.productionDeadline));
       const mobileList = `<div class="mobile-task-list">${mobileTasks.length ? mobileTasks.map(renderCard).join("") : '<div class="empty">Leer</div>'}</div>`;
@@ -2687,7 +2696,7 @@
           </div>
         </div>`;
       }).join("");
-      document.getElementById("view").innerHTML = `${mobileRows}
+      document.getElementById("view").innerHTML = `${renderMobileQuickTabs()}${mobileRows}
       <div class="timeline-panel">
         <div class="panel-head"><h2>Timeline</h2><span>Aktive Animationen</span></div>
         <div class="time-grid">
@@ -3468,6 +3477,13 @@
       const mobileColumnButton = event.target.closest("button[data-mobile-column]");
       if (mobileColumnButton) {
         mobileColumn = mobileColumnButton.dataset.mobileColumn;
+        view = "board";
+        render();
+        return;
+      }
+      const mobileViewButton = event.target.closest("button[data-mobile-view]");
+      if (mobileViewButton) {
+        view = mobileViewButton.dataset.mobileView;
         render();
         return;
       }
