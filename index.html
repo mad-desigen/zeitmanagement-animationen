@@ -75,7 +75,7 @@
       z-index: 10;
       border-bottom: 1px solid var(--line-soft);
       background: rgba(16, 18, 20, .92);
-      padding: 22px 28px 18px;
+      padding: 18px 28px;
       backdrop-filter: blur(18px);
     }
     .header-row {
@@ -101,8 +101,10 @@
     }
     .brand-logo {
       display: block;
-      width: clamp(220px, 26vw, 420px);
-      height: auto;
+      width: auto;
+      height: clamp(78px, 8vw, 116px);
+      max-width: min(300px, 24vw);
+      object-fit: contain;
     }
 	    .color-palette {
 	      display: flex;
@@ -170,6 +172,9 @@
       grid-template-columns: repeat(4, minmax(120px, 1fr));
       gap: 10px;
     }
+    .metrics-strip {
+      margin-bottom: 16px;
+    }
     .metric {
       min-width: 120px;
       border: 1px solid var(--line-soft);
@@ -198,12 +203,13 @@
       justify-content: flex-end;
       gap: 12px;
       margin: 0;
+      min-width: min(100%, 560px);
     }
     .header-tools {
-      display: grid;
-      gap: 12px;
-      justify-items: end;
+      display: flex;
+      justify-content: flex-end;
       min-width: 0;
+      flex: 1 1 auto;
     }
     .add, .column-add {
       display: inline-flex;
@@ -1475,14 +1481,12 @@
         letter-spacing: .035em;
       }
       .brand-logo {
-        width: min(230px, 66vw);
+        height: 54px;
+        max-width: min(210px, 62vw);
       }
       .header-row {
-        align-items: flex-start;
+        align-items: center;
         gap: 12px;
-      }
-      .header-tools {
-        display: contents;
       }
       .metrics {
         display: none;
@@ -1910,7 +1914,6 @@
         <img class="brand-logo" src="Logo.svg" alt="Zeitmanagement">
       </div>
       <div class="header-tools">
-        <div class="metrics" id="metrics"></div>
         <div class="actions">
           <div class="switch" aria-label="Ansicht wechseln">
             <button class="active" data-view="board" title="Kanban" aria-label="Kanban">
@@ -1948,6 +1951,7 @@
   </header>
 
   <main>
+    <section class="metrics metrics-strip" id="metrics"></section>
     <section class="learning" id="learning"></section>
     <section id="view"></section>
   </main>
