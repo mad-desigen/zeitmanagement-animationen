@@ -1698,6 +1698,94 @@
       .learning {
         display: none;
       }
+      .analysis-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .analysis-summary .metric {
+        min-width: 0;
+        padding: 10px;
+      }
+      .analysis-summary .metric span {
+        overflow: hidden;
+        font-size: 10px;
+        line-height: 1.15;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .analysis-summary .metric strong {
+        margin-top: 5px;
+        font-size: 22px;
+        line-height: 1.05;
+      }
+      .analysis-kpi-panel {
+        overflow: hidden;
+      }
+      .analysis-kpi-panel .panel-head {
+        min-width: 0;
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
+        padding: 14px;
+      }
+      .analysis-kpi-panel .panel-head h2 {
+        font-size: 24px;
+      }
+      .analysis-kpi-panel .panel-head span {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+      .analysis-kpi-table {
+        min-width: 0;
+        width: 100%;
+      }
+      .analysis-kpi-table .row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 6px 12px;
+        margin: 10px;
+        border: 1px solid var(--line-soft);
+        border-radius: var(--radius);
+        background: rgba(255,255,255,.035);
+        padding: 12px;
+      }
+      .analysis-kpi-table .row.head {
+        display: none;
+      }
+      .analysis-kpi-table .row span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .analysis-kpi-table .row span:nth-child(n+4) {
+        display: none;
+      }
+      .analysis-kpi-table .row:not(.head) span {
+        font-size: 15px;
+        line-height: 1.2;
+      }
+      .analysis-kpi-table .row:not(.head) span:first-child {
+        grid-column: 1 / -1;
+        font-weight: 900;
+      }
+      .analysis-kpi-table .row:not(.head) span:first-child strong {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .analysis-kpi-table .row:not(.head) span:nth-child(2) {
+        font-size: 20px;
+        font-weight: 900;
+      }
+      .analysis-kpi-table .row:not(.head) span:nth-child(3) {
+        align-self: center;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 850;
+        text-align: right;
+      }
       main {
         width: 100%;
         padding: 12px 12px 22px;
@@ -3075,9 +3163,9 @@
           ${renderMetric("Ø Vorbereitung", average(finished, "preparation"))}
           ${renderMetric("Ø in Arbeit", average(finished, "animation"))}
         </section>
-        <section class="analysis-panel">
+        <section class="analysis-panel analysis-kpi-panel">
           <div class="panel-head"><h2>Analyse</h2><span>Zeiten aus abgeschlossenen Animationen</span></div>
-          <div class="table">
+          <div class="table analysis-kpi-table">
             <div class="row head"><span>Kennzahl</span><span>Wert</span><span>Grundlage</span><span></span><span></span><span></span><span></span></div>
             <div class="row"><span><strong>Vorbereitung gesamt</strong></span><span>${formatDuration(finished.reduce((sum, task) => sum + sumSessions(task, "preparation"), 0))}</span><span>${finished.length} Aufgaben</span><span></span><span></span><span></span><span></span></div>
             <div class="row"><span><strong>in Arbeit gesamt</strong></span><span>${formatDuration(finished.reduce((sum, task) => sum + sumSessions(task, "animation"), 0))}</span><span>${finished.length} Aufgaben</span><span></span><span></span><span></span><span></span></div>
