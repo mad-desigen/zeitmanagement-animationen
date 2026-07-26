@@ -810,11 +810,29 @@
       color: #f2a4b8;
     }
     .timeline-panel, .analysis-panel {
-      overflow-x: auto;
       border: 1px solid var(--line-soft);
       border-radius: var(--radius);
       background: #16191d;
       box-shadow: var(--shadow);
+    }
+    .timeline-panel {
+      overflow: hidden;
+    }
+    .timeline-scroll {
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scrollbar-color: rgba(255,255,255,.22) rgba(255,255,255,.06);
+    }
+    .timeline-scroll::-webkit-scrollbar {
+      height: 12px;
+    }
+    .timeline-scroll::-webkit-scrollbar-track {
+      background: rgba(255,255,255,.05);
+    }
+    .timeline-scroll::-webkit-scrollbar-thumb {
+      border: 3px solid rgba(255,255,255,.05);
+      border-radius: 999px;
+      background: rgba(255,255,255,.28);
     }
     .panel-head {
       display: flex;
@@ -829,17 +847,50 @@
       margin: 0;
       font-size: 20px;
     }
+    .timeline-head {
+      min-width: 0;
+    }
+    .timeline-legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+    }
+    .timeline-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .timeline-legend i {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--marker-color);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--marker-color) 18%, transparent);
+    }
     .time-grid {
       display: grid;
-      min-width: 920px;
-      grid-template-columns: 220px minmax(680px, 1fr);
+      min-width: 1280px;
+      grid-template-columns: 220px minmax(1060px, 1fr);
     }
     .time-label {
+      position: sticky;
+      left: 0;
+      z-index: 5;
       min-height: 86px;
       border-right: 1px solid var(--line-soft);
       border-bottom: 1px solid var(--line-soft);
-      background: rgba(36, 41, 50, .8);
+      background: #222731;
       padding: 16px 12px;
+      box-shadow: 10px 0 22px rgba(0,0,0,.22);
+    }
+    .time-label.scale-spacer {
+      min-height: 54px;
+      background: #202630;
     }
     .time-label strong {
       display: block;
@@ -854,18 +905,25 @@
       margin-top: 3px;
     }
     .scale {
-      display: grid;
-      min-height: 44px;
-      grid-template-columns: repeat(11, minmax(60px, 1fr));
+      position: relative;
+      min-height: 54px;
       border-bottom: 1px solid var(--line-soft);
       background: #171b21;
     }
     .scale span {
-      border-left: 1px solid var(--line-soft);
+      position: absolute;
+      inset: 0 auto 0 0;
+      border-left: 1px solid rgba(255,255,255,.08);
       color: var(--muted);
       font-size: 12px;
       font-weight: 800;
-      padding: 12px 8px;
+      padding: 14px 10px;
+      transform: translateX(-1px);
+    }
+    .scale span:last-child {
+      transform: translateX(-100%);
+      border-left: 0;
+      border-right: 1px solid rgba(255,255,255,.08);
     }
     .timeline-row { display: contents; }
     .track {
@@ -873,27 +931,28 @@
       min-height: 86px;
       border-bottom: 1px solid var(--line-soft);
       background:
+        linear-gradient(90deg, rgba(255,255,255,.035), transparent 22%, transparent 78%, rgba(255,255,255,.025)),
         repeating-linear-gradient(
           90deg,
-          #171b21 0,
-          #171b21 calc(10% - 1px),
-          rgba(255,255,255,.07) calc(10% - 1px),
-          rgba(255,255,255,.07) 10%
+          transparent 0,
+          transparent calc(8.333% - 1px),
+          rgba(255,255,255,.055) calc(8.333% - 1px),
+          rgba(255,255,255,.055) 8.333%
         );
     }
     .bar {
       position: absolute;
       z-index: 2;
-      top: 28px;
+      top: 32px;
       min-width: 58px;
-      height: 30px;
+      height: 28px;
       overflow: hidden;
-      border-radius: 6px;
+      border-radius: 999px;
       color: #07120c;
       font-size: 12px;
       font-weight: 900;
-      line-height: 30px;
-      padding: 0 10px;
+      line-height: 28px;
+      padding: 0 12px;
       text-overflow: ellipsis;
       white-space: nowrap;
       background: var(--green);
@@ -904,10 +963,10 @@
     .pin {
       position: absolute;
       z-index: 3;
-      top: 9px;
-      bottom: 9px;
+      top: 12px;
+      bottom: 12px;
       width: 0;
-      border-left: 2px solid var(--text);
+      border-left: 2px solid #ff6b91;
       color: var(--text);
       font-size: 11px;
       font-weight: 900;
@@ -916,37 +975,66 @@
     .pin-label {
       position: absolute;
       top: 0;
-      left: 7px;
+      left: 8px;
       display: inline-flex;
       align-items: center;
+      gap: 5px;
       min-height: 22px;
       max-width: 170px;
       overflow: hidden;
       border-radius: 999px;
-      background: rgba(22, 25, 29, .94);
+      background: #f05379;
+      color: #fff;
       box-shadow: 0 4px 14px rgba(0,0,0,.28);
       padding: 2px 7px;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    .pin-icon {
+      display: inline-grid;
+      width: 14px;
+      height: 14px;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+    .pin-icon .svg-icon {
+      width: 14px;
+      height: 14px;
+      stroke-width: 2.8;
+    }
     .pin.send {
       top: auto;
-      bottom: 9px;
+      bottom: 12px;
       border-left-color: #58b8ff;
       color: #9dd7ff;
     }
     .pin.send .pin-label {
       top: auto;
       bottom: 0;
-      background: rgba(16, 26, 34, .95);
+      background: #143247;
+      color: #aee1ff;
     }
     .now {
       position: absolute;
       inset: 0 auto 0 0;
       z-index: 4;
-      width: 2px;
-      background: #ffffff;
-      box-shadow: 0 0 18px rgba(255,255,255,.55);
+      width: 0;
+      border-left: 2px solid #f8f8f8;
+      filter: drop-shadow(0 0 10px rgba(255,255,255,.45));
+    }
+    .now::before {
+      content: "Jetzt";
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      border-radius: 999px;
+      background: #f8f8f8;
+      color: #101214;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .04em;
+      padding: 2px 7px;
+      text-transform: uppercase;
     }
     .analysis-summary {
       display: grid;
@@ -2195,6 +2283,8 @@
     let isSyncing = false;
     let pendingServerSave = false;
     let lastServerPull = 0;
+    let timelineScrollKey = "";
+    let timelineScrollLeft = 0;
 
     function uid() {
       return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
@@ -2850,12 +2940,40 @@
         </details>
       </article>`;
     }
+    function timelinePercent(minutes, timelineStart, totalMinutes) {
+      return Math.max(0, Math.min(100, ((minutes - timelineStart * 60) / totalMinutes) * 100));
+    }
+    function focusTimelineOnNow(shouldFocus, nowPosition) {
+      const scroll = document.getElementById("timelineScroll");
+      if (!scroll) return;
+      if (!shouldFocus || nowPosition < 0 || nowPosition > 100) {
+        scroll.scrollLeft = timelineScrollLeft;
+        return;
+      }
+      requestAnimationFrame(() => {
+        const grid = scroll.querySelector(".time-grid");
+        const label = scroll.querySelector(".time-label");
+        if (!grid || !label) return;
+        const trackWidth = Math.max(0, grid.scrollWidth - label.offsetWidth);
+        const target = (trackWidth * nowPosition / 100) - 36;
+        scroll.scrollLeft = Math.max(0, Math.min(target, scroll.scrollWidth - scroll.clientWidth));
+        timelineScrollLeft = scroll.scrollLeft;
+      });
+    }
     function renderTimeline() {
+      const previousScroll = document.getElementById("timelineScroll");
+      if (previousScroll) timelineScrollLeft = previousScroll.scrollLeft;
       const timelineStart = Math.min(...Object.values(BROADCASTS).map(broadcast => broadcast.timelineStart));
       const timelineEnd = Math.max(...Object.values(BROADCASTS).map(broadcast => broadcast.timelineEnd));
       const hours = Array.from({ length: timelineEnd - timelineStart + 1 }, (_, index) => timelineStart + index);
       const totalMinutes = (timelineEnd - timelineStart) * 60;
       const nowPosition = ((now.getHours() * 60 + now.getMinutes() - timelineStart * 60) / totalMinutes) * 100;
+      const timelineKey = `${toLocalDate(now)}-${timelineStart}-${timelineEnd}`;
+      const shouldFocusNow = timelineScrollKey !== timelineKey;
+      if (shouldFocusNow) timelineScrollKey = timelineKey;
+      const hourWidth = 132;
+      const timelineWidth = Math.max(960, ((timelineEnd - timelineStart) * hourWidth));
+      const gridWidth = 220 + timelineWidth;
       const active = activeTasks();
       const urgent = active.filter(task => ["late", "critical", "tight"].includes(risk(task))).length;
       const nextTask = active[0];
@@ -2908,30 +3026,40 @@
         const created = new Date(task.createdAt);
         const createdMinutes = created.getHours() * 60 + created.getMinutes();
         const startMinutes = Math.max(timelineStart * 60, Math.min(createdMinutes, deadlineMinutes));
-        const left = ((startMinutes - timelineStart * 60) / totalMinutes) * 100;
-        const width = ((deadlineMinutes - startMinutes) / totalMinutes) * 100;
-        const sendLeft = ((sendSlotMinutes(task.sendSlot) - timelineStart * 60) / totalMinutes) * 100;
-        const deadlineLeft = ((deadlineMinutes - timelineStart * 60) / totalMinutes) * 100;
+        const left = timelinePercent(startMinutes, timelineStart, totalMinutes);
+        const width = Math.max(3, timelinePercent(deadlineMinutes, timelineStart, totalMinutes) - left);
+        const sendLeft = timelinePercent(sendSlotMinutes(task.sendSlot), timelineStart, totalMinutes);
+        const deadlineLeft = timelinePercent(deadlineMinutes, timelineStart, totalMinutes);
         const state = risk(task);
         return `<div class="timeline-row">
           <div class="time-label"><strong>${escapeHtml(task.title)}</strong><span>${formatDuration(sumSessions(task))} erfasst</span></div>
           <div class="track">
-            <div class="bar ${state}" style="left:${left}%;width:${Math.max(width, 8)}%">${riskLabel(state)}</div>
-            <span class="pin deadline" style="left:${deadlineLeft}%"><span class="pin-label">Deadline ${formatClock(task.productionDeadline)}</span></span>
-            <span class="pin send" style="left:${sendLeft}%"><span class="pin-label">Sendung ${task.sendSlot}</span></span>
+            <div class="bar ${state}" style="left:${left}%;width:${width}%">${riskLabel(state)}</div>
+            <span class="pin deadline" style="left:${deadlineLeft}%"><span class="pin-label"><span class="pin-icon">${icon("alarm")}</span>${formatClock(task.productionDeadline)}</span></span>
+            <span class="pin send" style="left:${sendLeft}%"><span class="pin-label"><span class="pin-icon">${icon("screen")}</span>${task.sendSlot}</span></span>
             ${nowPosition >= 0 && nowPosition <= 100 ? `<span class="now" style="left:${nowPosition}%"></span>` : ""}
           </div>
         </div>`;
       }).join("");
       document.getElementById("view").innerHTML = `${renderMobileQuickTabs()}${mobileRows}
       <div class="timeline-panel">
-        <div class="panel-head"><h2>Timeline</h2><span>Aktive Animationen</span></div>
-        <div class="time-grid">
-          <div class="time-label"></div>
-          <div class="scale" style="grid-template-columns:repeat(${hours.length}, minmax(60px, 1fr))">${hours.map(hour => `<span>${hour}:00</span>`).join("")}</div>
-          ${rows || '<div class="time-label"></div><div class="track"><div class="empty">Keine aktiven Animationen.</div></div>'}
+        <div class="panel-head timeline-head">
+          <h2>Timeline</h2>
+          <div class="timeline-legend" aria-label="Legende">
+            <span><i style="--marker-color:#f05379"></i>Deadline</span>
+            <span><i style="--marker-color:#58b8ff"></i>Sendung</span>
+            <span><i style="--marker-color:#f8f8f8"></i>Jetzt</span>
+          </div>
+        </div>
+        <div class="timeline-scroll" id="timelineScroll">
+          <div class="time-grid" style="min-width:${gridWidth}px;grid-template-columns:220px ${timelineWidth}px">
+            <div class="time-label scale-spacer"></div>
+            <div class="scale">${hours.map(hour => `<span style="left:${timelinePercent(hour * 60, timelineStart, totalMinutes)}%">${hour}:00</span>`).join("")}</div>
+            ${rows || '<div class="time-label"></div><div class="track"><div class="empty">Keine aktiven Animationen.</div></div>'}
+          </div>
         </div>
       </div>`;
+      focusTimelineOnNow(shouldFocusNow, nowPosition);
     }
     function renderAnalysis() {
       const finished = completedTasks().concat(archivedTasks()).sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt));
@@ -3775,6 +3903,7 @@
       const button = event.target.closest("button[data-view]");
       if (!button) return;
       view = button.dataset.view;
+      if (view === "timeline") timelineScrollKey = "";
       render();
     });
 	    document.getElementById("modal").addEventListener("click", async event => {
@@ -3815,6 +3944,7 @@
       const mobileViewButton = event.target.closest("button[data-mobile-view]");
       if (mobileViewButton) {
         view = mobileViewButton.dataset.mobileView;
+        if (view === "timeline") timelineScrollKey = "";
         render();
         return;
       }
