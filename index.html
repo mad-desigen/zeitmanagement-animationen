@@ -1620,6 +1620,9 @@
         background: rgba(16,18,20,.96);
         backdrop-filter: blur(18px);
       }
+      .header-tools {
+        width: 100%;
+      }
       .add {
         min-height: 50px;
         justify-content: center;
@@ -1632,6 +1635,7 @@
         grid-row: 1;
         grid-template-columns: repeat(5, minmax(0, 1fr));
         width: 100%;
+        min-width: 0;
       }
       .switch button {
         min-height: 42px;
@@ -2135,7 +2139,7 @@
               <span class="nav-label">Archiv</span>
             </button>
             <button class="icon-only" data-view="settings" title="Einstellungen" aria-label="Einstellungen">
-              <svg class="svg-icon nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3"></path><path d="M12 18v3"></path><path d="M3 12h3"></path><path d="M18 12h3"></path><circle cx="12" cy="12" r="3"></circle><path d="m5.6 5.6 2.1 2.1"></path><path d="m16.3 16.3 2.1 2.1"></path><path d="m18.4 5.6-2.1 2.1"></path><path d="m7.7 16.3-2.1 2.1"></path></svg>
+              <svg class="svg-icon nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.7 3.4 9 5.5a7.5 7.5 0 0 0-1.7 1L5.1 6 3.4 8.9 5 10.5a7 7 0 0 0 0 2L3.4 14.1 5.1 17l2.2-.5a7.5 7.5 0 0 0 1.7 1l.7 2.1h3.6l.7-2.1a7.5 7.5 0 0 0 1.7-1l2.2.5 1.7-2.9-1.6-1.6a7 7 0 0 0 0-2l1.6-1.6L17.9 6l-2.2.5a7.5 7.5 0 0 0-1.7-1l-.7-2.1Z"></path><circle cx="11.5" cy="11.5" r="2.8"></circle></svg>
               <span class="nav-label">Einstellungen</span>
             </button>
           </div>
