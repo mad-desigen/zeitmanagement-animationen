@@ -45,7 +45,7 @@
       color: var(--text);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, Helvetica, sans-serif;
       line-height: 1.45;
-      padding-bottom: 78px;
+      padding-bottom: 210px;
     }
     button, input, select, textarea { font: inherit; }
     button {
@@ -71,9 +71,8 @@
       outline-offset: 2px;
     }
     header {
-      position: sticky;
-      top: 0;
-      z-index: 10;
+      position: relative;
+      z-index: 1;
       border-bottom: 1px solid var(--line-soft);
       background: rgba(16, 18, 20, .92);
       padding: 18px 28px;
@@ -82,7 +81,7 @@
     .header-row {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-start;
       gap: 18px;
       max-width: 1600px;
       margin: 0 auto;
@@ -200,11 +199,6 @@
       font-size: 20px;
     }
     .actions {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 25;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
@@ -212,10 +206,61 @@
       gap: 12px;
       margin: 0;
       min-width: 0;
-      padding: 10px 28px calc(10px + env(safe-area-inset-bottom));
+      padding: 0;
+      border-top: 0;
+      background: transparent;
+      backdrop-filter: none;
+    }
+    .app-footer {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 30;
       border-top: 1px solid var(--line-soft);
-      background: rgba(16,18,20,.96);
+      background: rgba(16,18,20,.97);
+      box-shadow: 0 -22px 60px rgba(0,0,0,.36);
       backdrop-filter: blur(18px);
+    }
+    .footer-inner {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px 16px;
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 10px 28px calc(10px + env(safe-area-inset-bottom));
+    }
+    .app-footer .metrics {
+      grid-column: 1;
+      grid-row: 1;
+      margin: 0;
+    }
+    .app-footer .learning {
+      grid-column: 1;
+      grid-row: 2;
+      margin: 0;
+    }
+    .app-footer .header-tools {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      align-self: center;
+    }
+    .app-footer .metric,
+    .app-footer .learning > div {
+      padding: 9px 10px;
+    }
+    .app-footer .metric strong {
+      font-size: 18px;
+    }
+    .app-footer .learning > div {
+      min-height: 44px;
+    }
+    .app-footer .learning span {
+      display: inline-block;
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .header-tools {
       display: flex;
@@ -1616,19 +1661,19 @@
         display: none;
       }
       .actions {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 25;
+        position: static;
         display: grid;
         grid-template-columns: minmax(0, 1fr) 48px;
         gap: 8px;
         margin: 0;
+        padding: 0;
+        border-top: 0;
+        background: transparent;
+        backdrop-filter: none;
+      }
+      .app-footer .footer-inner {
+        display: block;
         padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
-        border-top: 1px solid var(--line-soft);
-        background: rgba(16,18,20,.96);
-        backdrop-filter: blur(18px);
       }
       .header-tools {
         width: 100%;
@@ -2129,6 +2174,17 @@
       <div class="brand">
         <img class="brand-logo" src="Logo.svg?v=2" alt="Zeitmanagement">
       </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="view"></section>
+  </main>
+
+  <footer class="app-footer" aria-label="Status und Navigation">
+    <div class="footer-inner">
+      <section class="metrics metrics-strip" id="metrics"></section>
+      <section class="learning" id="learning"></section>
       <div class="header-tools">
         <div class="actions">
           <div class="switch" aria-label="Ansicht wechseln">
@@ -2164,13 +2220,7 @@
         </div>
       </div>
     </div>
-  </header>
-
-  <main>
-    <section class="metrics metrics-strip" id="metrics"></section>
-    <section class="learning" id="learning"></section>
-    <section id="view"></section>
-  </main>
+  </footer>
 
   <div class="deadline-alert" id="deadlineAlert" role="alertdialog" aria-modal="true" aria-labelledby="deadlineAlertTitle">
     <div class="deadline-card">
